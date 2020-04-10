@@ -11,8 +11,8 @@ googleAnalytics = "UA-163369693-1"
 
 [Menus]
   main = [
-      {Name = "Twitter", URL = "https://github.com/mustafaakin/"},
-      {Name = "Github", URL = "https://twitter.com/mustafaakin/"},
+      {Name = "Twitter", URL = "https://twitter.com/mustafaakin/"},
+      {Name = "Github", URL = "https://github.com/mustafaakin/"},
       {Name = "LinkedIn", URL = "https://www.linkedin.com/in/mustafaakin/"}
   ]
 
