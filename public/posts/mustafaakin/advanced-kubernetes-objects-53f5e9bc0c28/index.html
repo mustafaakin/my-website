@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.68.3" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Advanced Kubernetes Objects You Need to Know &middot; Mustafa Akın</title>
+  <meta name="description" content="Improve your workloads and day-to-day operations with these less known Kubernetes Objects and Controllers" />
+
+  
+  <link type="text/css" rel="stylesheet" href="http://mustafaakin.dev/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="http://mustafaakin.dev/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="http://mustafaakin.dev/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="http://mustafaakin.dev/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="http://mustafaakin.dev/"><h1>Mustafa Akın</h1></a>
+      <p class="lead">
+       SRE Architect @Atlassian Opsgenie, PhD Student @Bikkent University CS 
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li><a href="http://mustafaakin.dev/">Home</a> </li>
+        <li><a href="https://twitter.com/mustafaakin/"> Github </a></li><li><a href="https://www.linkedin.com/in/mustafaakin/"> LinkedIn </a></li><li><a href="https://github.com/mustafaakin/"> Twitter </a></li>
+      </ul>
+    </nav>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>Advanced Kubernetes Objects You Need to Know</h1>
+  <time datetime=2018-04-03T14:31:01Z class="post-date">Tue, Apr 3, 2018</time>
+  <p><img src="img/1__7GAovJxxPtRi1qYWKhzWAw.jpeg" alt=""></p>
+<p><a href="https://kubernetes.io/">Kubernetes</a> adoption is increasing each day. People are transforming both development and production environments to container-based deployments, and they are making use of Kubernetes to handle the operations more elegantly. Ability to do one-click zero downtime rolling deployment updates was a dream or required too many interventions by an operator or a custom in-house applications where they were heavily dependent on the specific platforms. However, like every tool, Kubernetes has a learning curve, so it can be overwhelming for starters.</p>
+<p>In Kubernetes, Objects are persistent entities which can be queried and updated via APIs. Having a single endpoint makes the management of every object easier, because almost all the time, you supply Kubernetes an Object and want it to apply it, and the API server takes the required steps to fulfill your request by detecting the changes in the given object template.</p>
+<p>When you start learning and experimenting with Kubernetes, you mostly use a small subset of the objects. The most basic one is <em>Pod</em>, which is a group of one or more containers. They are ephemeral entities, meaning they are not durable. So, if you deploy your applications by utilizing pods, you will need to take additional steps to ensure a number of your pods are running, and they are healthy. However, Kubernetes already has more complex objects such as <em>ReplicaSets</em> and <em>Deployments</em> which handle the lifetime of pods. There are also objects for service discovery, such as <em>Service</em> and <em>Ingress</em>, and configuration objects <em>ConfigMap</em> and <em>Secrets</em>. Although these objects will solve most of your problems, there are many more objects and controllers which can make your life easier while using Kubernetes. If you examine the Kubernetes API documentation, you will see many objects. The objects are categorized as:</p>
+<ol>
+<li><strong>Workloads:</strong> Manage containers and their lifetimes</li>
+<li><strong>Discovery &amp; Load Balancing:</strong> Make your applications accessible to each other or external world</li>
+<li><strong>Config &amp; Storage:</strong> Bind data to your containers</li>
+<li><strong>Metadata:</strong> Adjust the behavioral data for other objects</li>
+<li><strong>Cluster:</strong> Managing cluster state and configurations</li>
+</ol>
+<p>In this blog post, we will introduce you to some of the rarely used or not widely known objects and how are they used by Kubernetes API and controllers, and how they can improve your workloads and day-to-day operations.</p>
+<p>If you are familiar with Kubernetes, you might already know basic objects and controllers like <em>Pod</em>, <em>Deployment</em>, <em>Volume</em>, <em>Service</em> and <em>Ingress</em>. However, with default permissions, there is no limit on what users can request from Kubernetes API. A user can request unlimited number of replicas, volumes, any Docker image, arbitrary CPU and Memory resources. Having an uncontrolled environment would cause instability as pods will most likely be competing for resources. You might also need some enforcements on what can be run, so that deployments both conform your technical and business needs.</p>
+<p>Admission controllers are used for intercepting the requests to Kubernetes API, such as creating a <em>Deployment</em>, a new <em>ConfigMap</em>, etc. In other words, any Kubernetes object can be caught with admission controllers and modified before persisting them in the database. They can also be used to reject the objects, and many admission controllers might be chained to perform a set of checks. In short, admission controllers can be categorized as “validating” which accepts or rejects an object, and they can also be “mutating” which modifies the object before persistence.</p>
+<p>The ability to intercept the objects before saving them allows enforcing some rules. For instance, you might want to let only a single domain of Docker images to pull, or you might enforce a naming scheme for objects, prevent some labels from being used, or add sidecar containers to each of your containers. The main reason why admission controllers are useful is that you can continue interacting with API server with proper credentials, and you do not have to create an additional proxy layer or a handler, and you maintain a fewer number of and smaller components, and it becomes easier to modify and swap them.</p>
+<h3 id="resourcequota">ResourceQuota</h3>
+<p>As you might already know, you can specify pods’ CPU and Memory requests and limits, and as Kubernetes already knows the pod placements, it can properly place your pods into such places that your requests are fulfilled. When a pod has memory requests set, your pod’s QoS (Quality of Service) class is <strong>Guaranteed</strong>, and when your limit is higher than requests, QoS class is <strong>Burstable</strong>. In other words, your pod gets at least the resources it desires, if there is space. However, limiting the total requests by namespace can be useful if you have many namespaces used by many projects or people so that namespaces get their fair shares. This is where <em>ResourceQuota</em> helps, and it can be defined as a simple YAML file as follows:</p>
+<p>apiVersion: v1<br>
+kind: ResourceQuota<br>
+metadata:<br>
+name: my-cheap-namespace<br>
+spec:<br>
+hard:<br>
+requests.cpu: &ldquo;4&rdquo;<br>
+requests.memory: 8Gi<br>
+limits.cpu: &ldquo;16&rdquo;<br>
+limits.memory: 16Gi</p>
+<p>You can also limit the number of Kubernetes objects that a namespace can use. You can limit the total number of Pods to avoid scheduling overheads, the number of load balancers (which can be tied to a load balancer with an actual cost in a cloud provider, such as AWS Network Load Balancer) or the number of Persistent Volume Claims as they can be costly as well. An example configuration is as follows:</p>
+<p>apiVersion: v1<br>
+kind: ResourceQuota<br>
+metadata:<br>
+name: object-quota-demo<br>
+spec:<br>
+hard:<br>
+persistentvolumeclaims: &ldquo;4&rdquo;<br>
+services.loadbalancers: &ldquo;3&rdquo;<br>
+services.nodeports: &ldquo;1&rdquo;</p>
+<h3 id="priorityclass">PriorityClass</h3>
+<p>If you are running high-intensity workloads, it might be common for you to be out of space from time to time. Sure, you might add new worker kubelets with the auto-scalers. However, it might be too late. If some of your containers can tolerate eviction, such as background tasks that are not directly customer facing, there is no reason that they cannot be reduced to make room for your new deployment. <em>PriorityClass</em> also allows the higher priority pods to be scheduled earlier than the lower priority ones.</p>
+<p>Note that, <em>PodDistruptionBudgets</em> try to guarantee a number or percentage of pods running at a time. However, if a high priority pod is submitted to the scheduler, the lower priority pod with a PodDistruptionBudget might not be guaranteed, and more than desired number of pods might be deleted.</p>
+<p>A <em>PriorityClass</em> is as defined as follows.</p>
+<p>apiVersion: scheduling.k8s.io/v1alpha1<br>
+kind: PriorityClass<br>
+metadata:<br>
+name: high-priority<br>
+value: 1000000<br>
+globalDefault: false<br>
+description: &ldquo;Wow this is very much you should have a good reason&rdquo;</p>
+<p>And you use it in a <em>Pod</em> like the following:</p>
+<p>apiVersion: v1<br>
+kind: Pod<br>
+metadata:<br>
+name: my-very-important-container<br>
+labels:<br>
+important:<br>
+spec:<br>
+containers:</p>
+<ul>
+<li>name: find-the-answer<br>
+image: return42:latest<br>
+priorityClassName: high-priority</li>
+</ul>
+<h3 id="limitrange">LimitRange</h3>
+<p>If you forget specifying CPU &amp; Memory requests and limits for your pods, they will be in <strong>BestEffort</strong> QoS class. Specifying default limits and requests might be helpful for beginners of your Kubernetes adaptation. Limiting container resource usage is a good practice because rogue pods might deter the other ones. You can define a <em>LimitRange</em> as follows:</p>
+<p>apiVersion: v1<br>
+kind: LimitRange<br>
+metadata:<br>
+name: cpu-limit-range<br>
+spec:<br>
+limits:</p>
+<ul>
+<li>default:<br>
+cpu: 1<br>
+defaultRequest:<br>
+cpu: 0.5<br>
+type: Container</li>
+</ul>
+<h3 id="podsecuritypolicy">PodSecurityPolicy</h3>
+<p>You might sometimes want to run untrusted pods and desire to secure your Kubernetes cluster against harmful intent as much as possible. Even if you are running trusted pools, your applications or the software you use might have some security vulnerabilities and might be exploited if they are facing the public networks.</p>
+<p>On the other hand, you might have some trusted applications that might need extended privileges, and you would like to grant them new capabilities that generally regular containers do not possess. Containers might want to modify protected kernel variables and features, and would like some advanced system calls.</p>
+<p>While you could do the above, You can modify both grants and restrictions in a centralized manner with Kubernetes. This is where <em>PodSecurityPolicy</em> is helpful. You can configure the SELinux and AppArmor rules, drop and add Linux capabilities, modify namespace sharing for PID, network, IPC, enforce the user and group of the containers and even make the container read-only.</p>
+<p>The below is an example of a security policy which is a restrictive policy, but it also allows some of the sysctl’s to be configured.</p>
+<p>apiVersion: policy/v1beta1<br>
+kind: PodSecurityPolicy<br>
+metadata:<br>
+name: restricted<br>
+Annotations:<br>
+security.alpha.kubernetes.io/sysctls: &lsquo;net.ipv4.route.*,kernel.msg*&rsquo;<br>
+apparmor.security.beta.kubernetes.io/allowedProfileNames: &lsquo;runtime/default&rsquo;<br>
+apparmor.security.beta.kubernetes.io/defaultProfileName:  &lsquo;runtime/default&rsquo;<br>
+spec:<br>
+privileged: false<br>
+allowPrivilegeEscalation: false<br>
+requiredDropCapabilities:<br>
+- ALL<br>
+volumes:<br>
+- &lsquo;configMap&rsquo;<br>
+- &lsquo;emptyDir&rsquo;<br>
+- &lsquo;secret&rsquo;<br>
+- &lsquo;persistentVolumeClaim&rsquo;<br>
+hostNetwork: false<br>
+hostIPC: false<br>
+hostPID: false<br>
+runAsUser:<br>
+rule: &lsquo;MustRunAsNonRoot&rsquo;<br>
+seLinux:<br>
+rule: &lsquo;RunAsAny&rsquo;<br>
+supplementalGroups:<br>
+rule: &lsquo;MustRunAs&rsquo;<br>
+ranges:<br>
+- min: 1<br>
+max: 65535<br>
+fsGroup:<br>
+rule: &lsquo;MustRunAs&rsquo;<br>
+ranges:<br>
+- min: 1<br>
+max: 65535<br>
+readOnlyRootFilesystem: false</p>
+<h3 id="imagepolicywebhook-and-imagereview">ImagePolicyWebhook and ImageReview</h3>
+<p>For a safe and controlled deployment, it is desirable to specify a policy for the images that can be used as containers. Running arbitrary containers on production might lead to some undesired situations if you are not careful. A classical cluster admin would configure HTTP proxy or SSL termination for all the nodes, and implement a custom firewall that will reject requests for unverified domains or paths. However, it is hard and prone to error. Good news is that it can be quickly done in Kubernetes with <em>ImagePolicyWebhook</em>. As you can understand from the name, Kubernetes API can perform a webhook to an external service to validate your image pull request. The external API is supposed to check the images and additional information like annotations and namespace and make a decision and return success or failure to the Kubernetes API server. The server can also return a reason string so that the user can be informed why a particular image was rejected. The responses can also be cached for a configurable time to increase the performance. An example <em>ImageReview</em> object passed to the configured server can be seen as below:</p>
+<p>{ <br>
+&ldquo;apiVersion&rdquo;:&ldquo;imagepolicy.k8s.io/v1alpha1&rdquo;,<br>
+&ldquo;kind&rdquo;:&ldquo;ImageReview&rdquo;,<br>
+&ldquo;spec&rdquo;:{ <br>
+&ldquo;containers&rdquo;:[ <br>
+{ <br>
+&ldquo;image&rdquo;:&ldquo;myrepo/myimage:v1&rdquo;<br>
+},<br>
+{ <br>
+&ldquo;image&rdquo;:&ldquo;myrepo/myimage@sha256:alongstring&rdquo;<br>
+}<br>
+],<br>
+&ldquo;annotations&rdquo;:[ <br>
+&ldquo;mycluster.image-policy.k8s.io/ticket-1234&rdquo;: &ldquo;break-glass&rdquo;<br>
+],<br>
+&ldquo;namespace&rdquo;:&ldquo;mynamespace&rdquo;<br>
+}<br>
+}</p>
+<h3 id="validatingadmissionwebhook-and-mutatingadmissionwebhook">ValidatingAdmissionWebhook and MutatingAdmissionWebhook</h3>
+<p>Although you can use the default Kubernetes Admission controllers, which can enforce LimitRange, ResourceQuota or different known objects, you might have some non-trivial requirements and want to implement logic for such purposes. This is where ValidatingAdmissionWebhook comes to help, and as similar to ImagePolicyWebhook, it passes Kubernetes object requests you configure to the endpoint of your choice, and you are free to accept or reject the request. You can also configure which API calls you are interested, so you are only passed the ones you desire. In the below example, a ValidatingWebhookConfiguration is given with a single webhook which validates only the pods <em>CREATE</em> requests. You can configure any Kubernetes object to be included for verification.</p>
+<p>apiVersion: admissionregistration.k8s.io/v1beta1<br>
+kind: ValidatingWebhookConfiguration<br>
+metadata:<br>
+name: validate-your-containers<br>
+webhooks:<br>
+- name: verify-pod-creation<br>
+rules:</p>
+<ul>
+<li>apiGroups:
+<ul>
+<li>&quot;&rdquo;<br>
+apiVersions:</li>
+<li>v1<br>
+operations:</li>
+<li>CREATE<br>
+resources:</li>
+<li>pods<br>
+clientConfig:<br>
+service:<br>
+namespace: default<br>
+name: name<br>
+caBundle: <!-- raw HTML omitted --></li>
+</ul>
+</li>
+</ul>
+<p><em>MutatingAdmissionWebhook</em> is similar to <em>ValidatingWebhookConfiguration,</em> you are again passed the Kubernetes object that is being created, however, instead of rejecting or accepting, your endpoint is supposed to modify the original Kubernetes object and return the modified request. You could use it to change the environment variables of a pod, append a default label, set a namespace if the user forgot to do so. Any custom corporate requirements can be done here!</p>
+<h3 id="available-admission-controllers">Available Admission Controllers</h3>
+<p>In addition to above admission controllers, there are various ones you can use, and they are summarized as follows (not including deprecated ones):</p>
+<ul>
+<li><strong>AlwaysPullImages:</strong> Modifies each pod’s <em>imagePullPolicy</em> to always so that every time the latest Docker image is pulled. Note that might not be desirable to use latest in production since it would violate the stability.</li>
+<li><strong>DefaultStorageClass:</strong> If a volume request does not have a storage class, it assigns one, so the user does not care and get the default class.</li>
+<li><strong>DefaultTolerationSeconds:</strong> Sets the default toleration for pods for tolerating specific taints <em>not</em> <em>ready:NoExecute</em> and <em>unreachable:NoExecute</em> for 5 minutes.</li>
+<li><strong>DenyEscalatingExec:</strong> This controller will deny the privileges to be escalated, meaning getting more rights on the host system, even when the container is running as running as privileged.</li>
+<li><strong>EventRateLimit (alpha):</strong> Protects the Kubernetes API server from request floods to prevent both accidental and intentional abuse.</li>
+<li><strong>ExtendedResourceToleration:</strong> Extended resources such as GPUs and FPGAs can be used in Kubernetes, but such nodes should be tainted with the extended resource’s name. This controller automatically adds such taints to pods if they require extended resources.</li>
+<li><strong>ImagePolicyWebhook:</strong> As explained above, performs a webhook for the image to be pulled to accept or reject.</li>
+<li><strong>Initializers (alpha):</strong> The initializer is a new feature, which is already similar to regular admission controllers. The downside of admission controllers is that they are compiled into the kubernetes binary, and you need to enable them explicitly. Initializers allow you to write custom controllers, and you can find more info on <a href="https://ahmet.im/blog/initializers/">this blog post</a> by Ahmet Alp Balkan. There is also an example by Kelsey Hightower of injecting Envoy proxies with Initializers in each Deployment <a href="https://github.com/kelseyhightower/kubernetes-initializer-tutorial">in this repository</a>.</li>
+<li><strong>InitialResources (experimental):</strong> This controllers examine the pod’s resource usage history and come up with an estimation of the resources of a new pod creation request. While this is an experimental controller, it is promising and might make your environments more stable due to foreseeable resource requests and make the scheduling more comfortable and more correct.</li>
+<li><strong>LimitPodHardAntiAffinityTopology:</strong> This admission controller denies any pod that defines <em>AntiAffinity</em> topology key other than <em>kubernetes.io/hostname</em> in <em>requiredDuringSchedulingRequiredDuringExecution</em>. This ensures, if affinity is requested, pods are distributed according to hostname only.</li>
+<li><strong>LimitRanger:</strong> Enforces that the requested sources in the <em>LimitRange</em> object are not exceeding available resources with new pod deployments.</li>
+<li><strong>MutatingAdmissionWebhook (beta):</strong> As explained above, modifies an object before an actual request to API.</li>
+<li><strong>NamespaceAutoProvision:</strong> Creates the namespaces automatically, when an object with a non-existing namespace arrives.</li>
+<li><strong>NamespaceExists:</strong> If a namespaced object is submitted without a namespace, the request is rejected. Might be helpful to enforce resource segregation properly.</li>
+<li><strong>NamespaceLifecycle:</strong> Used to prevent deletion of default system namespaces, <em>default</em>, <em>kube-system</em> and <em>kube-public</em>. Also prevents adding new objects to a namespace which is being deleted. Deleting a namespace deletes each resource in it so that it might be useful.</li>
+<li><strong>NodeRestriction:</strong> Kubernetes worker nodes are called as kubelets, and this controller limits the kubelet’s ability to modify Node and Pod objects. This allows locking down the nodes even more, and in the future, it is expected to add more restrictions so that the kubelets are less harmful in the event of the compromise of a node.</li>
+<li><strong>OwnerReferencesPermissionEnforcement:</strong> This controller has a fancy name, but it protects the <em>metadata.ownerReferences</em> of a Kubernetes object, so it is forbidden by a user to change it and be its owner if the user does not have delete permissions.</li>
+<li><strong>PodNodeSelector:</strong> This controller enforces what selectors can be used which node selectors might be used for pods.</li>
+<li><strong>PersistentVolumeClaimResize:</strong> This controller decides whether a volume can be resized. If enabled, storage classes must explicitly define <em>allowVolumeExpansion</em> if they can be resized or the API will reject such requests.</li>
+<li><strong>PodPreset:</strong> PodPresets allows setting a template for your pods. Upon pod creation, the controller iterates over all PodPresets and if your pod matches, the preset is applied to your pod. It can be useful to provide a baseline for all pods or attaching specific ConfigMap or Volumes to pods.</li>
+<li><strong>PodSecurityPolicy:</strong> As explained above, this applies preset security configuration for pods to ensure a common security policy for your cluster.</li>
+<li><strong>PodTolerationRestriction:</strong> Kubernetes uses affinities and taints to attract or retract pods. When a pod has toleration, it can be assigned to a node that has taints. This controller manages if the pod can tolerate the taint. This can be useful if you want to lock down a node and make sure only the approved ones can schedule there. Or you can be sure it a pod is not allowed to tolerate fatal taints such as <em>node.kubernetes.io/out-of-disk</em>.</li>
+<li><strong>Priority:</strong> Uses the <em>priorityClassName</em> field to set an integer value to a pod priority. If no priority class is found, the request is rejected. Making priorities mandatory might be helpful to ensure availability of your services.</li>
+<li><strong>ResourceQuota:</strong> As explained above, this controller allows ensuring the resource demands are not exceeding the node capacities.</li>
+<li><strong>SecurityContextDeny:</strong> Ensures only allowed <em>SecurityContext</em> fields to be set by pods. For instance, you can reject a pod becoming root, or sharing host PID namespaces.</li>
+<li><strong>ServiceAccount:</strong> Implements the automation for service accounts, which are used by pods to communicate with Kubernetes API.</li>
+<li><strong>Storage Object in Use Protection (beta):</strong> Adds new finalizers to Persistent Volumes and Claims and protects PVs and PVCs that are in active use from premature removal.</li>
+<li><strong>ValidatingAdmissionWebhook (beta):</strong> As explained above, this controller allows validating submitted objects to the API before their persistence.</li>
+</ul>
+<p><strong>Disclaimer:</strong> Some of the examples are taken from the official <a href="https://kubernetes.io/docs/home/?path=browse">Kubernetes documentation</a> and adapted to this blog.</p>
+<p><img src="img/1__9g__aE8NVsbDf6gWpZTahkw.png" alt=""></p>
+<p><a href="http://opsgenie.com.com?utm_source=medium&amp;utm_medium=blog&amp;utm_campaign=engineering_blog">OpsGenie</a> is an alerting and on call management solution that integrates with your IT stack to call attention to any issue raised via your monitoring, logging, or ticketing tools.</p>
+<p><a href="https://docs.opsgenie.com/docs/prometheus-integration">OpsGenie’s strong Prometheus integration</a> through AlertManager allows teams to respond to Prometheus alerts faster and make your Kubernetes cluster safer.</p>
+<p>You can sign up and <a href="http://opsgenie.com.com?utm_source=medium&amp;utm_medium=blog&amp;utm_campaign=engineering_blog">try OpsGenie</a> for free with Prometheus integration right now!</p>
+
+</div>
+
+
+    </main>
+
+    
+      
+    
+  </body>
+</html>

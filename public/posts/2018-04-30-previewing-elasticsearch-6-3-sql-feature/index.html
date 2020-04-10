@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.69.0" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Previewing Elasticsearch 6.3 SQL Feature &middot; Mustafa Akın</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="https://mustafaakin.dev/"><h1>Mustafa Akın</h1></a>
+      <p class="lead">
+       SRE Architect @Atlassian Opsgenie, PhD Student @Bikkent University CS 
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li><a href="https://mustafaakin.dev/">Home</a> </li>
+        <li><a href="https://twitter.com/mustafaakin/"> Github </a></li><li><a href="https://www.linkedin.com/in/mustafaakin/"> LinkedIn </a></li><li><a href="https://github.com/mustafaakin/"> Twitter </a></li>
+      </ul>
+    </nav>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>Previewing Elasticsearch 6.3 SQL Feature</h1>
+  <time datetime=2018-04-30T20:27:19Z class="post-date">Mon, Apr 30, 2018</time>
+  <p>Although the decision to include X-Pack sparked some confusion and disgruntle in some people due to having non Apache licensed code being present in the repo and the distrubitions; they are easily removable if any of them is a concern to you.</p>
+<p>SQL support was announced in ElasticON and there is a <a href="https://www.elastic.co/elasticon/conf/2017/sf/elasticsearch-sql">comprehensive presentation</a> by <a href="https://twitter.com/costinl">Costin Leau</a>. I was pretty excited about the support, because we use Elasticsearch for storing metrics and logs and it does the agggregations pretty fast. Even on a single node cluster with proper index templates and settings tailored, it can do very large aggregations, even aggregations with inner aggregations very fast, usually under 1 second. Imagine having thousands of customers and hundred millions of records and getting an average of something is done under a second. Of course, Elasticsearch is not a silver bullet for everything, you have to organize your data accordingly, which is a broad and interesting topic, however I will not be focusing on data modeling in this blog post.</p>
+<p>Query syntax of the Elasticsearch is very powerful, however it is hard to write, especially for beginners. Being able to write SQL will reduce bariers for who are afraid of 100 lines of JSONs. SQL support is supported to come with 6.3, but it is not released yet. However, I was able to find the lins of the snapshot builds. (Of course you can build from source, but it is a little long and requires Java 10)</p>
+<ul>
+<li>Elasticsearch: <a href="https://snapshots.elastic.co/downloads/elasticsearch/elasticsearch-7.0.0-alpha1-SNAPSHOT.zip">Link</a></li>
+<li>Kibana: <a href="https://snapshots.elastic.co/downloads/kibana/kibana-7.0.0-alpha1-SNAPSHOT-darwin-x86_64.tar.gz">Link</a></li>
+<li>Metricbeat: <a href="https://snapshots.elastic.co/downloads/beats/metricbeat/metricbeat-7.0.0-alpha1-SNAPSHOT-darwin-x86_64.tar.gz">Link</a></li>
+</ul>
+<p>Note that although the releases are named 7.0.0-alpha1-SNAPSHOT, they are actually not tagged as 6.x, not really version 7.0. I have also included Metricbeat to generate sample data from my computer. You can also generate similar links for other beat variants such as Filebeat.</p>
+<p>After setting up the components, I just opened the Kibana because I like its DevTools which allows wiriting REST requests easier and can autocomplete very well. I just tried the following:</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="nx">GET</span> <span class="nx">_xpack</span><span class="o">/</span><span class="nx">sql</span>
+<span class="p">{</span>
+  <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="s2">&#34;SELECT * FROM metricbeat*&#34;</span>
+<span class="p">}</span>
+</code></pre></div><p>And it returned the following error:</p>
+<pre><code>Trying to retrieve too many docvalue_fields. Must be less than or equal to: [100] but was [1307]. This limit can be set by changing the [index.max_docvalue_fields_search] index level setting
+</code></pre><p>Docvalues are Elasticsearch’s data structure for storing the original indexed data in a columnar way. It seems that SQL extension blocks getting too many of them to avoid performance problems, but it can be easily overriden. The real question we should be asking why there are 1307 columns? Because as Metricbeat registers the index mapping, it also stores metadata about all available columns, such as <strong>vsphere.virtualmachine.custom_fields</strong> even though there is no value with that field.</p>
+<p>So, after a quick review of what actually Metricbeat supports, I try the following query:</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="nx">GET</span> <span class="nx">_xpack</span><span class="o">/</span><span class="nx">sql</span>
+<span class="p">{</span>
+  <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="s2">&#34;SELECT avg(system.process.memory.rss.bytes) FROM metricbeat*&#34;</span>
+<span class="p">}</span>
+</code></pre></div><p>I just love it does not require backticks (which I hate to type with Turkish keyboard) with compound objects (fields names with dots), and it returns an easily parseable structured JSON with metadata of columns and the rows seperated:</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="p">{</span>
+  <span class="s2">&#34;columns&#34;</span><span class="o">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+      <span class="s2">&#34;name&#34;</span><span class="o">:</span> <span class="s2">&#34;AVG(system.process.memory.rss.bytes)&#34;</span><span class="p">,</span>
+      <span class="s2">&#34;type&#34;</span><span class="o">:</span> <span class="s2">&#34;long&#34;</span>
+    <span class="p">}</span>
+  <span class="p">],</span>
+  <span class="s2">&#34;rows&#34;</span><span class="o">:</span> <span class="p">[</span>
+    <span class="p">[</span>
+      <span class="mf">612974971.7615894</span>
+    <span class="p">]</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div><p>The endpoint can also return a table format if you append <strong>?format=txt</strong> to end.</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="nx">GET</span> <span class="nx">_xpack</span><span class="o">/</span><span class="nx">sql</span><span class="o">?</span><span class="nx">format</span><span class="o">=</span><span class="nx">txt</span>
+<span class="p">{</span>
+  <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="s2">&#34;SELECT avg(system.process.memory.rss.bytes) FROM metricbeat*&#34;</span>
+<span class="p">}</span>
+<span class="nx">AVG</span><span class="p">(</span><span class="nx">system</span><span class="p">.</span><span class="nx">process</span><span class="p">.</span><span class="nx">memory</span><span class="p">.</span><span class="nx">rss</span><span class="p">.</span><span class="nx">bytes</span><span class="p">)</span>
+<span class="o">------------------------------------</span>
+<span class="mf">6.129749717615894E8</span>
+</code></pre></div><p>To try more interesting queries, I have also tried aggregations, which is to get the average memory for process:</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="nx">GET</span> <span class="nx">_xpack</span><span class="o">/</span><span class="nx">sql</span><span class="o">?</span><span class="nx">format</span><span class="o">=</span><span class="nx">txt</span>
+<span class="p">{</span>
+    <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="s2">&#34;SELECT avg(system.process.memory.rss.bytes), system.process.name FROM metricbeat* WHERE match(beat.hostname, &#39;MustafaAkin.local&#39;) GROUP BY system.process.name LIMIT 100&#34;</span>
+<span class="p">}</span>
+</code></pre></div><p>And it returns the following:</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="nx">AVG</span><span class="p">(</span><span class="nx">system</span><span class="p">.</span><span class="nx">process</span><span class="p">.</span><span class="nx">memory</span><span class="p">.</span><span class="nx">rss</span><span class="p">.</span><span class="nx">bytes</span><span class="p">)</span><span class="o">|</span><span class="nx">system</span><span class="p">.</span><span class="nx">process</span><span class="p">.</span><span class="nx">name</span>
+<span class="o">------------------------------------+-------------------</span>
+<span class="mf">3.3009664E7</span>                         <span class="o">|</span><span class="nx">CalendarAgent</span>      
+<span class="mf">3.3805892963265306E8</span>                <span class="o">|</span><span class="nx">Google</span> <span class="nx">Chrome</span>      
+<span class="mf">2.754828747755102E8</span>                 <span class="o">|</span><span class="nx">Google</span> <span class="nx">Chrome</span> <span class="nx">H</span>    
+<span class="mf">2.34139648E8</span>                        <span class="o">|</span><span class="nx">Slack</span> <span class="nx">Helper</span>       
+<span class="mf">1.3305953523809524E8</span>                <span class="o">|</span><span class="nx">Spotify</span>            
+<span class="mf">8.14535317979798E8</span>                  <span class="o">|</span><span class="nx">Spotify</span> <span class="nx">Helper</span>     
+<span class="mf">1.3287424E7</span>                         <span class="o">|</span><span class="nx">XprotectService</span>    
+<span class="mf">3.394526625185185E8</span>                 <span class="o">|</span><span class="nx">goland</span>             
+<span class="mf">1.9761845169230768E8</span>                <span class="o">|</span><span class="nx">iTerm2</span>             
+<span class="mf">1.0084054522828283E9</span>                <span class="o">|</span><span class="nx">idea</span>               
+<span class="mf">1.5776596712727273E9</span>                <span class="o">|</span><span class="nx">java</span>               
+<span class="mf">2.3113728E7</span>                         <span class="o">|</span><span class="nx">metricbeat</span>         
+<span class="mf">2.38579712E8</span>                        <span class="o">|</span><span class="nx">node</span>               
+<span class="mf">1.644544E7</span>                          <span class="o">|</span><span class="nx">quicklookd</span>         
+<span class="mf">6209536.0</span>                           <span class="o">|</span><span class="nx">zsh</span>
+</code></pre></div><p>As looking at the directory of the Elasticsearch, I also see a command line SQL client for ad-hoc queries. There is also a JDBC driver to integrate it directly in Java programs or the data visualization tools.</p>
+<p>An example query with Filebeat logs where message field is used in text matcing searches for keyword <strong>sleep</strong>:</p>
+<p><img src="/img/1__AQL9f4zNDHbvKTBZyw4Vug.png" alt="A screenshot from querying Filebeat logs with Command Line SQL Client of Elasticsearch with an ASCII logo of something I do not comprehend."></p>
+<p>There is also another endpoint for converting the SQL query to a regular Elasticsearch query. It can be useful if you would like to debug it. For comparison, one of the above queries results in the following long form with Translate API:</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="nx">GET</span> <span class="nx">_xpack</span><span class="o">/</span><span class="nx">sql</span><span class="o">/</span><span class="nx">translate</span>
+<span class="p">{</span>
+    <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="s2">&#34;SELECT avg(system.process.memory.rss.bytes), system.process.name FROM metricbeat* WHERE match(beat.hostname, &#39;MustafaAkin.local&#39;) GROUP BY system.process.name LIMIT 100&#34;</span>
+<span class="p">}</span>
+
+<span class="p">{</span>
+  <span class="s2">&#34;size&#34;</span><span class="o">:</span> <span class="mi">0</span><span class="p">,</span>
+  <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="p">{</span>
+    <span class="s2">&#34;match&#34;</span><span class="o">:</span> <span class="p">{</span>
+      <span class="s2">&#34;beat.hostname&#34;</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="s2">&#34;MustafaAkin.local&#34;</span><span class="p">,</span>
+        <span class="s2">&#34;operator&#34;</span><span class="o">:</span> <span class="s2">&#34;OR&#34;</span><span class="p">,</span>
+        <span class="s2">&#34;prefix_length&#34;</span><span class="o">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s2">&#34;max_expansions&#34;</span><span class="o">:</span> <span class="mi">50</span><span class="p">,</span>
+        <span class="s2">&#34;fuzzy_transpositions&#34;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+        <span class="s2">&#34;lenient&#34;</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span>
+        <span class="s2">&#34;zero_terms_query&#34;</span><span class="o">:</span> <span class="s2">&#34;NONE&#34;</span><span class="p">,</span>
+        <span class="s2">&#34;auto_generate_synonyms_phrase_query&#34;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+        <span class="s2">&#34;boost&#34;</span><span class="o">:</span> <span class="mi">1</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="s2">&#34;_source&#34;</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span>
+  <span class="s2">&#34;stored_fields&#34;</span><span class="o">:</span> <span class="s2">&#34;_none_&#34;</span><span class="p">,</span>
+  <span class="s2">&#34;aggregations&#34;</span><span class="o">:</span> <span class="p">{</span>
+    <span class="s2">&#34;groupby&#34;</span><span class="o">:</span> <span class="p">{</span>
+      <span class="s2">&#34;composite&#34;</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">&#34;size&#34;</span><span class="o">:</span> <span class="mi">100</span><span class="p">,</span>
+        <span class="s2">&#34;sources&#34;</span><span class="o">:</span> <span class="p">[</span>
+          <span class="p">{</span>
+            <span class="s2">&#34;80529&#34;</span><span class="o">:</span> <span class="p">{</span>
+              <span class="s2">&#34;terms&#34;</span><span class="o">:</span> <span class="p">{</span>
+                <span class="s2">&#34;field&#34;</span><span class="o">:</span> <span class="s2">&#34;system.process.name&#34;</span><span class="p">,</span>
+                <span class="s2">&#34;order&#34;</span><span class="o">:</span> <span class="s2">&#34;asc&#34;</span>
+              <span class="p">}</span>
+            <span class="p">}</span>
+          <span class="p">}</span>
+        <span class="p">]</span>
+      <span class="p">},</span>
+      <span class="s2">&#34;aggregations&#34;</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">&#34;80696&#34;</span><span class="o">:</span> <span class="p">{</span>
+          <span class="s2">&#34;avg&#34;</span><span class="o">:</span> <span class="p">{</span>
+            <span class="s2">&#34;field&#34;</span><span class="o">:</span> <span class="s2">&#34;system.process.memory.rss.bytes&#34;</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div><p>Finally, you can also include additional filters with Elasticsearch DSL on top of your SQL queries which can be useful to add additional terms that SQL syntax does not support or you do not want to modify the SQL:</p>
+<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="nx">POST</span> <span class="o">/</span><span class="nx">_xpack</span><span class="o">/</span><span class="nx">sql</span><span class="o">?</span><span class="nx">format</span><span class="o">=</span><span class="nx">txt</span>
+<span class="p">{</span>
+    <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="s2">&#34;SELECT * FROM library ORDER BY page_count DESC&#34;</span><span class="p">,</span>
+    <span class="s2">&#34;filter&#34;</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">&#34;range&#34;</span><span class="o">:</span> <span class="p">{</span>
+            <span class="s2">&#34;page_count&#34;</span><span class="o">:</span> <span class="p">{</span>
+                <span class="s2">&#34;gte&#34;</span> <span class="o">:</span> <span class="mi">100</span><span class="p">,</span>
+                <span class="s2">&#34;lte&#34;</span> <span class="o">:</span> <span class="mi">200</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="s2">&#34;fetch_size&#34;</span><span class="o">:</span> <span class="mi">5</span>
+<span class="p">}</span>
+</code></pre></div><p>The documentation of SQL features of Elasticsearch can be found <a href="https://www.elastic.co/guide/en/elasticsearch/reference/6.x/xpack-sql.html">the documentation at the master branch</a>. Although the SQL support is here, there are some missing parts as well. For the time of writing, I could not find the string manipulation functions or ordering when GROUP BY is used. However the SQL feature is currently a work in progress but holds much promise. It will probably never be a complete SQL solution, which can do cross index joins that can replace your RDBMS, but Elasticsearch is not designed for that anyway. This SQL addition to regular Elasticsearch DSL is simply a means to reduce barriers for some people to write queries faster.</p>
+
+</div>
+
+<h2>Comments</h2>
+<div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "mustafaakindev" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </main>
+
+    
+      
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-163369693-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+    
+  </body>
+</html>

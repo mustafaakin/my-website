@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.68.3" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Using GraalVM to run Native Java in AWS Lambda with Golang &middot; Mustafa Akın</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="http://mustafaakin.dev/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="http://mustafaakin.dev/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="http://mustafaakin.dev/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="http://mustafaakin.dev/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="http://mustafaakin.dev/"><h1>Mustafa Akın</h1></a>
+      <p class="lead">
+       SRE Architect @Atlassian Opsgenie, PhD Student @Bikkent University CS 
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li><a href="http://mustafaakin.dev/">Home</a> </li>
+        <li><a href="https://twitter.com/mustafaakin/"> Github </a></li><li><a href="https://www.linkedin.com/in/mustafaakin/"> LinkedIn </a></li><li><a href="https://github.com/mustafaakin/"> Twitter </a></li>
+      </ul>
+    </nav>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>Using GraalVM to run Native Java in AWS Lambda with Golang</h1>
+  <time datetime=2018-06-11T13:32:49Z class="post-date">Mon, Jun 11, 2018</time>
+  <p>If you are deploying serverless applications in AWS Lambda and using Java, you are well aware of <a href="https://hackernoon.com/cold-starts-in-aws-lambda-f9e3432adbf0">cold start problems</a>. Cold start happens because of the way the Java Virtual Machine works, it kicks in JIT (Just-in-time), and it needs to “warm-up” like a car from the 80s. AWS Lambda caches containers for you, so when idle, it is paused and brought back online immediately as soon as a request arrives. There is no guarantee that there will be enough containers available. Old ones might be killed (even when they are frequently invoked), so from time to time, your function might be initialized again. Depending on the number of classes loaded and the actual functions used, this process can be frustrating, and can lead to 5–10 seconds of delays, which are called cold starts. There are <a href="https://medium.com/thundra/dealing-with-cold-starts-in-aws-lambda-a5e3aa8f532">many ways to reduce the number of cold starts</a>, such as manual warm up by triggering it with a void input. But in this blog, we will introduce you a probably not practical but a cool use case using GraalVM.</p>
+<p><a href="https://www.graalvm.org/">GraalVM</a> is an universal virtual machine by Oracle. It allows programs written in Java, JavaScript, R, Python and many more languages to work in a shared runtime, removing barriers and allow zero overhead interoperability. Therefore, you can extend your programs and select the best language for a task. Graal supports both JIT (just-in-time) and AOT (ahead-of-time) compiling. The AOT compiling allows producing native binaries, with the tool native-image. The main advantage is that it eliminates the need for warming up because the code is already optimized. There is an <a href="https://medium.com/graalvm/instant-netty-startup-using-graalvm-native-image-generation-ed6f14ff7692">excellent blog post</a> about making Netty start under 10 milliseconds and use much less memory. Graal is a unique solution to avoid cold-start problems, but it also has its limitations; it does not support dynamic class loading, and reflection support is also limited. There are other limitations documented which you might need to consider before making the change. There is <a href="https://medium.com/graalvm/graalvm-ten-things-12d9111f307d">another blog post</a> by GraalVM team, which demonstrates some interesting things you can do with GraalVM with examples.</p>
+<p>As you might be aware, AWS Lambda announced Go support in January. Unlike other languages, it does not require a specific function signature to be exported; instead, it communicates with your Go function using net/rpc package. The main advantage is, your Go code is compiled into a binary in your local computer (with GOOS=linux GOARCH=amd64 target), and they can start very fast as they also do not need any dynamic loading and JIT. So, in theory, as long as you implement the RPC format, you can write it in any language. The downside is that net/rpc uses Gob format for exchanging messages, which is not popular in other languages and therefore not implemented. So, we decided to combine Go for RPC, and Java for actual computation and decieded to glue them with Graal.</p>
+<h3 id="the-code">The code</h3>
+<p>Go programs can be compiled as shared libraries, and they can be efficiently loaded with JNI in Java. Luckily, Graal also supports JNI to some extent, enough for our use case. There are no code changes required in Java part, except the Go code cannot call Java with non-primitive types such as string or byte arrays. So, our entry point is from Java, and it calls Go code to set up the RPC handler and communicates with Go channels! The code is simple to understand, but making it work was an enlightening experience which made us more familiar with JNI, Graal, and Cgo.</p>
+<p><img src="/img/0__EO090B3qfK__U34J2.jpg" alt="Illustration of how the compilation, linking and communication with AWS Lambda works"></p>
+<p>The native calls we are making from Java to Go is as follows:</p>
+<ul>
+<li><strong>void start():</strong> Signals the Go to start the RPC communication with AWS. Each invocation request first hits Go handler, and it notifies the Java using the below functions.</li>
+<li><strong>String readRequest():</strong> Asks the Go to read any available input, the Go counterpart blocks on a channel. The Lambda handler writes to a channel, and this function then returns a String as output.</li>
+<li><strong>void writeResponse(String input):</strong> Notifies the Go as a response to the previous invocation. Since the Lambda executes only one function at a time per container, the concurrency will not be a problem. The Go routine of the RPC call waits on this response from the channel and returns a response to AWS when Java calls this function.</li>
+</ul>
+<p>As you might notice, this pattern is similar to sockets &amp; pipes. At first, we tried using socket communications, although it is less ideal with I/O overhead, it seemed more natural to understand for a blog post. However, AWS shut us down, as you can’t bind to any socket for creating servers. Then, we tried creating Unix pipes, but Java can’t create them (but use them as they are regular files), and the Go function when calls syscall.Mkfifo returns file exists error, although it does not. So, we came up with the below solution, where everything happens in the memory of the single binary and works very fast.</p>
+<p>The Go code for handling communication with AWS and Java is as follows:</p>
+<div class="highlight"><pre class="chroma"><code class="language-golang" data-lang="golang"><span class="kd">func</span> <span class="nf">communicateJava</span><span class="p">(</span><span class="nx">input</span> <span class="kd">interface</span><span class="p">{})</span> <span class="p">(</span><span class="kd">interface</span><span class="p">{},</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">inBytes</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">json</span><span class="p">.</span><span class="nf">Marshal</span><span class="p">(</span><span class="nx">input</span><span class="p">)</span>
+  <span class="nx">inputStr</span> <span class="o">:=</span> <span class="nb">string</span><span class="p">(</span><span class="nx">inBytes</span><span class="p">)</span>
+  <span class="nx">goRequest</span> <span class="o">&lt;-</span> <span class="nx">inputStr</span>
+  <span class="nx">respStr</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">javaResponse</span>
+  <span class="kd">var</span> <span class="nx">resp</span> <span class="kd">interface</span><span class="p">{}</span>
+  <span class="nx">err</span> <span class="p">=</span> <span class="nx">json</span><span class="p">.</span><span class="nf">Unmarshal</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="nx">respStr</span><span class="p">),</span> <span class="o">&amp;</span><span class="nx">resp</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="c1">//export Java_Test_start
+</span><span class="c1"></span><span class="kd">func</span> <span class="nf">Java_Test_start</span><span class="p">(</span><span class="nx">env</span> <span class="o">*</span><span class="nx">C</span><span class="p">.</span><span class="nx">JNIEnv</span><span class="p">,</span> <span class="nx">clazz</span> <span class="nx">C</span><span class="p">.</span><span class="nx">jclass</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">log</span><span class="p">.</span><span class="nf">SetPrefix</span><span class="p">(</span><span class="s">&#34;GO - &#34;</span><span class="p">)</span>
+
+  <span class="k">go</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
+     <span class="nx">lambda</span><span class="p">.</span><span class="nf">Start</span><span class="p">(</span><span class="nx">communicateJava</span><span class="p">)</span>
+  <span class="p">}()</span>
+<span class="p">}</span>
+
+<span class="c1">//export Java_Test_writeResponse
+</span><span class="c1"></span><span class="kd">func</span> <span class="nf">Java_Test_writeResponse</span><span class="p">(</span><span class="nx">env</span> <span class="o">*</span><span class="nx">C</span><span class="p">.</span><span class="nx">JNIEnv</span><span class="p">,</span> <span class="nx">clazz</span> <span class="nx">C</span><span class="p">.</span><span class="nx">jclass</span><span class="p">,</span> <span class="nx">input</span> <span class="nx">C</span><span class="p">.</span><span class="nx">jstring</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">a</span> <span class="o">:=</span> <span class="nx">C</span><span class="p">.</span><span class="nf">convert_to_cstring</span><span class="p">(</span><span class="nx">env</span><span class="p">,</span> <span class="nx">input</span><span class="p">)</span>
+  <span class="nx">b</span> <span class="o">:=</span> <span class="nx">C</span><span class="p">.</span><span class="nf">GoString</span><span class="p">(</span><span class="nx">a</span><span class="p">)</span>
+  <span class="nx">javaResponse</span> <span class="o">&lt;-</span> <span class="nx">b</span>
+<span class="p">}</span>
+
+<span class="c1">//export Java_Test_readRequest
+</span><span class="c1"></span><span class="kd">func</span> <span class="nf">Java_Test_readRequest</span><span class="p">(</span><span class="nx">env</span> <span class="o">*</span><span class="nx">C</span><span class="p">.</span><span class="nx">JNIEnv</span><span class="p">,</span> <span class="nx">clazz</span> <span class="nx">C</span><span class="p">.</span><span class="nx">jclass</span><span class="p">)</span> <span class="nx">C</span><span class="p">.</span><span class="nx">jstring</span> <span class="p">{</span>
+  <span class="nx">input</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">goRequest</span>
+  <span class="nx">cstr</span> <span class="o">:=</span> <span class="nx">C</span><span class="p">.</span><span class="nf">CString</span><span class="p">(</span><span class="nx">input</span><span class="p">)</span>
+  <span class="nx">cjstring</span> <span class="o">:=</span> <span class="nx">C</span><span class="p">.</span><span class="nf">convert_to_jstring</span><span class="p">(</span><span class="nx">env</span><span class="p">,</span> <span class="nx">cstr</span><span class="p">)</span>
+  <span class="k">return</span> <span class="nx">cjstring</span>
+<span class="p">}</span>
+</code></pre></div><p>The Java code which is started at the creation of Lambda container loads and calls the Go counterparts using JNI is as follows:</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">System</span><span class="o">.</span><span class="na">loadLibrary</span><span class="o">(</span><span class="s">&#34;Hello&#34;</span><span class="o">);</span>
+<span class="n">start</span><span class="o">();</span>
+<span class="k">while</span> <span class="o">(</span><span class="kc">true</span><span class="o">)</span> <span class="o">{</span>
+  <span class="n">String</span> <span class="n">request</span> <span class="o">=</span> <span class="n">readRequest</span><span class="o">();</span>
+  <span class="n">KMeansResult</span> <span class="n">response</span> <span class="o">=</span> <span class="n">kMeans</span><span class="o">.</span><span class="na">calculate</span><span class="o">(</span><span class="n">request</span><span class="o">);</span>
+  <span class="n">String</span> <span class="n">response</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="na">toString</span><span class="o">();</span>
+  <span class="n">writeResponse</span><span class="o">(</span><span class="n">response</span><span class="o">);</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div><p>Java counter part of communicating with Golang shared library and doing the actual calculation</p>
+<p>To link them both, under Linux, we compile the Go as a shared library. Then, in any machine, we compile Java with regular Java compiler. In our case, we used Maven, to include external dependencies such as Apache Commons Math and org.json to make the task harder, but more meaningful as using plain Java is not interesting at all. We package it as a fat-jar and supply it to native-image tool included with the GraalVM distribution. Example build output is as follows:</p>
+<div class="highlight"><pre class="chroma"><code class="language-sh" data-lang="sh">root@03da97ad05ed:/code# go build <span class="se">\
+</span><span class="se"></span> -buildmode<span class="o">=</span>c-shared <span class="se">\
+</span><span class="se"></span> -o libHello.so <span class="se">\
+</span><span class="se"></span> src/main/go/lambda.go
+
+root@03da97ad05ed:/code# <span class="nv">$GRAALVM_HOME</span>/bin/native-image <span class="se">\
+</span><span class="se"></span> MyEntrypointJava <span class="se">\
+</span><span class="se"></span> -cp <span class="s2">&#34;target/graalvm-java-go-awslambda-1.0-SNAPSHOT.jar&#34;</span> <span class="se">\
+</span><span class="se"></span> -H:+JNI -H:+ReflectionEnabled <span class="se">\
+</span><span class="se"></span> -H:+ReportUnsupportedElementsAtRuntime <span class="se">\
+</span><span class="se"></span> -Djava.library.path<span class="o">=</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> - no-server
+ 
+classlist: 4,593.14 ms
+<span class="o">(</span>cap<span class="o">)</span>: 1,545.73 ms
+setup: 3,208.61 ms
+<span class="o">(</span>typeflow<span class="o">)</span>: 7,488.44 ms
+<span class="o">(</span>objects<span class="o">)</span>: 3,405.12 ms
+<span class="o">(</span>features<span class="o">)</span>: 76.77 ms
+analysis: 11,184.50 ms
+universe: 471.31 ms
+<span class="o">(</span>parse<span class="o">)</span>: 1,677.39 ms
+<span class="o">(</span>inline<span class="o">)</span>: 1,150.32 ms
+<span class="o">(</span>compile<span class="o">)</span>: 9,294.53 ms
+compile: 12,667.04 ms
+image: 1,297.93 ms
+write: 354.55 ms
+<span class="o">[</span>total<span class="o">]</span>: 33,868.05 ms
+
+root@03da97ad05ed:/code# zip lambda.zip libHello.so myentrypointjava
+adding: libHello.so <span class="o">(</span>deflated 68%<span class="o">)</span>
+adding: myentrypointjava <span class="o">(</span>deflated 67%<span class="o">)</span>
+</code></pre></div><p>We have used a custom Docker image with OpenJDK 8, Go 1.10.2 and GraalVM 1.0 RC1. You also need zlib development files and GCC. As you can see, the lambda.go file is compiled as c-shared with Go compiler. After that, the bundled Fat JAR file is passed to native-image, which takes a considerable amount of time (33.8 seconds) to determine the used classes, analyze the flow and optimize &amp; inline as a regular compiler does. In the end, it generates a single executable, only depending on system libraries such as libc, libz, libpthread and libcrypt. You still need to supply the shared library produced by Go, as it is loaded dynamically (with System.loadLibrary() call), not linked statically.</p>
+<p>After uploading the package to AWS Lambda with even a relatively small memory configuration, it generally works under 10ms and sometimes even sub-milliseconds. You can see there are no more cold starts and the function is available immediately upon container initialization.</p>
+<p>An example invocation log from Cloudwatch is as follows:</p>
+<p><img src="/img/0__O7NTtO8lqlYkcZs9.jpg" alt="Yes, A sub-millisecond cold start (first invocation) with only consuming 38 MB with external dependencies, even in the slowest Lambda settings."></p>
+<p>The code in the example is just generating small random vectors and applying k-means clustering algorithm, to make sure we are doing the somewhat meaningful computation in Java part (with the help of Apache Commons Math) and we can adequately benchmark it and compare it with regular Lambda. <a href="https://gist.github.com/mustafaakin/71e4494508311f7764e59b16e9dd3b8e">The code is uploaded to Github,</a> if you are interested and want to try on your own.</p>
+<h3 id="testing--benchmarks">Testing &amp; Benchmarks</h3>
+<p>What good of AOT-compiled native binaries versus JIT Java classes if you do not indent to compare the performance? We also have the regular Java version of the above function as a Java Lambda. The function is parameterized, so that we can generate enough computational power need to amortize the external costs such as I/O, similar to one benchmark in one of our <a href="https://engineering.opsgenie.com/how-does-proportional-cpu-allocation-work-with-aws-lambda-41cd44da3cac">old blog posts</a> trying to explain AWS CPU performance for various memory settings. Always remember that, for nice benchmarks, you need repetitions and enough samples so that you can remove outliers and see the actual patterns. Also, if you are comparing raw CPU performance or multi-threads, you need to make sure that the overhead of external factors such as initialization and I/O should be minimal and your functions should have a consistent runtime for same input sizes. Otherwise, you will be benchmarking external factors which will benefit no one and confuse many people.</p>
+<p>In this benchmark, we have used Apache Commons Math to generate a uniformly distributed N number of d-dimensional points and apply k-means clustering algorithm, which makes no sense but it is a CPU and Memory burden and does not depend on any I/O, thus a good candidate for benchmarking in our case. The wiring of the Go code and Java is established as above, and the inputs are passed as strings. As GraalVM does not support reflection, the parsing of the input in Java is done via org.json package; we construct the POJOs by hand, which would not be desirable for a massive project where you have much input and outputs already defined and uses Jackson. We have compared both Java and Go+Graal version with various memory settings with a large enough input to make overheads negligible. Although the Graal version has no cold starts, it turns out it is slower and consumes more memory.</p>
+<p><img src="/img/1__g9SNrYT2GSlC8ba__WroaVA.png" alt="Benchmark results for K-Means calculation with Plain Java and GraalVM+Golang in AWS Lambda with various memory settings"></p>
+<p>Graal + Go version was always slower, but the runtime duration was more consistent. It suffered no cold start, but it also consumed more memory. Plain Java version used 50–60 MB of memory but the Graal version used additional 110–290 MB of memory.</p>
+<p>Naturally, we blamed Go binding and AWS Lambda, and run the tests locally with plain Java and native-image with no Go code. It turns out it is also slower and used more memory in our local machines as well. AoT compiler of GraalVM might not be suitable for some use cases. Therefore, we might need to look at the generated assembly code to understand what it has compiled to and why it is slower. But since the library we used is complicated, and understanding machine code and comparing it with JVM bytecode is no easy task, so we tried to benchmark a simple job, which calculates sin(x) continuously. To make sure the compiler did not optimize out sin(x), we updated x continually with the result of sin(x) and saw the results are same for both Java and Graal. In this simple task, native-image created by Graal was 2 times faster, for 10 million sin(x) calculations.</p>
+<p>As most people use Lambda to communicate with external systems, such as uploading a file, processing an authentication flow, or doing administrative tasks, they might utilize the CPU differently and therefore have different performance output depending on the number of IO performed. We intended to do a test consisting of I/O, such as HTTP requests to AWS Services, but GraalVM <a href="https://github.com/oracle/graal/issues/390">does not support SSL yet</a>. If you are making an SSL connection for the first time, it takes considerable time because it loads many classes and JIT is not kicked in yet. So it would be good to see how the SSL can be improved with GraalVM.</p>
+<p>As with all fancy benchmarks, you should question their validity and applicability carefully. Maybe your function will be three times faster, or it will not compile at all with Graal. Critical thinking and avoiding hype train, or boarding that train with proper caution is never a bad idea. Although the GraalVM has different performance for various workloads and supports a subset of JVM features, it eliminates the cold start problem, and the native binaries start- immediately. This fast start time enables your Java programs to be used as CLI programs as well. We have some lambda functions that include some Hadoop libraries for ETL tasks and they have around 5–10 seconds cold start time in low memory settings, and we sure can make use of Graal for them in the future.</p>
+
+</div>
+
+
+    </main>
+
+    
+      
+    
+  </body>
+</html>

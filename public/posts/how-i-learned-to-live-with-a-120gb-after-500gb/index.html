@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.69.0" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>How I learned to live with a 120GB  (after 500GB) &middot; Mustafa Akın</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="https://mustafaakin.dev/"><h1>Mustafa Akın</h1></a>
+      <p class="lead">
+       SRE Architect @Atlassian Opsgenie, PhD Student @Bikkent University CS 
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li><a href="https://mustafaakin.dev/">Home</a> </li>
+        <li><a href="https://twitter.com/mustafaakin/"> Github </a></li><li><a href="https://www.linkedin.com/in/mustafaakin/"> LinkedIn </a></li><li><a href="https://github.com/mustafaakin/"> Twitter </a></li>
+      </ul>
+    </nav>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>How I learned to live with a 120GB  (after 500GB)</h1>
+  <time datetime=2013-01-26T20:32:49Z class="post-date">Sat, Jan 26, 2013</time>
+  <p>My laptop is from August &lsquo;09, so it is now a little bit slow. It had a 500GB traditional spinning disk drive. I know, it is not dead yet, however random read/write is horrible. My Windows 7 installation took 1-2 minutes to boot and be ready to open new programs, so I have never closed my machine. I have always used hibernate/suspend. Opening heavy programs like Photoshop was not good. In fact, the biggest reason was, I am also using Linux for my development purposes. However, my precious games and some programs are not compatible with Linux, Wine and open source alternatives are not providing satisfactory experience for me. So I decided to replace my spinning disk with an SSD. Wow, this is expensive. At east for a student budget and for an old laptop. So I could afford a 120 GB Kingston SSD. My laptop isn&rsquo;t even SATA 3, so I get at most 300 MB/s throughput, although my SSD supports ~550MB/s read/writes. </p>
+<p><strong>Good Sides</strong></p>
+<p>Firstly, I was amazed. Freshly installed Windows 7 takes 10 seconds to boot and my Lubuntu (my favorite linux distro) takes 5 seconds to boot. It was very good. On Linux, installing packages were the most amazing thing. I have a very high bandwith at dormitory, however unpacking and installing was always taking long time. But now, it was magical. after downloading all the packages, installing eclipse with all recommended packages only took 10 seconds. Wow, just wow. On both Windows and Linux, all the programs open instantly, no waiting time except Photoshop. And it opens in 8 seconds. Games start and load instantly. Most of the time on online games, I always wait other people to be ready for games. And, the best thing is when I have a large file to download from the web, I can download files with multiparts and I do not have to wait for disk to be ready. As I said, random access is terrble. However, with a little tool called <a href="http://www.linuxjournal.com/content/speed-your-downloads-axel">axel</a> on Linux, I can open 250 simultaneous connections and I almost reached 75 MB/s (megabytes per second) on downloading from <a href="http://www.put.io">put.io</a>. Great, everything is so fast now, however it has a catch.</p>
+<p><strong>Bad Sides</strong></p>
+<p>SSDs are so expensive. I remember when SSDs first showed up, it was even more expensive and slower. The situation is now better, but still expensive compared to spinning disks. I bought a 120 GB disk, and I could buy a 1 TB 7200rpm disk instead of it. But I admit that speed gain is worth that.</p>
+<p><strong>How to cope with low storage</strong></p>
+<p>The actual size is 111 GB. I tried many configurations. I tried to have only Linux, but it was not enough. I needed Windows too. So I gave 99 GB to Windows, 10 GB to Linux, 2 GB to Linux swap partition. (I actually need to give it 4 GB but I didn&rsquo;t since my usage patterns never exceed 2GB swap) As you can see I even count the swap partitions 2GB. Every bit is important. On Linux, I delete apt cache, there is no need to store those packages, right? I installed them and they are not required anymore. I occasionally check space left with df -h and check if everything is alright. I even deleted some packages I do not use. I install the packages without suggested packages with &ndash;no-install-recommends flag. </p>
+<p>For SSD, Windows is a huge problem. Come on, what takes 15 GB on a fresh install? Disabling Windows features is not so helpful as many features are required. However, I found <a href="http://www.ghacks.net/2011/02/23/remove-windows-7-sp1-backups-to-free-up-disk-space/">a way to delete service pack files</a>, it saves 3 GBs. Additionally, when you open Disk Cleanup utilitiy, I cleanup everything there. As a note, when you click System Files, there is a new tab there, which lets you delete all restore point backups but the most recent one. It surely saves some considerable space. Then, as precautions, I always have the programs that I use, I delete the other programs which are not used. The biggest thing that consumes space is games, Call of Duty: Black Ops 2 takes 17 GBs when fully installed. So, I have at most 3-4 games present. Before, I kept most of my downloads Downloads folder, but I occasionally clean the directory, just delete everything. If I installed them, or just left them there, they are probably not critical to store them. That is why Internet exists, I can download them again most of the time. As another new habbit, In my Dropbox, (I have 88 GB with referalls and contests), %10 of them is filled however I use selective sync. I use it is as an online archive when the those folders do not need to be changed or I need to store them on my PC everytime, such as old projects, assignments, photos and some e-books. Lastly, for media, I do not store much music, only the best ones I like, approximately 5 GB. For other music, I use Grooveshark and YouTube. For videos, I use also use YouTube. However, there is not much streaming video services in Turkey for TV series and movies. So the options are rare, I use TV or my films stored in my 2 TB disk, or DVDs. </p>
+<p><strong>Conclusion</strong></p>
+<p>As you can see, as the prices for SSDs is much and you cannot afford big capacities, you have to change your habbits. Ask yourselves, do you really need that file to be present in your disk, or can you transfer it to web or external disks? Or, you know, you can just delete them. If you played and finished a game, you can uninstall it. Same goes for programs, or any content that you have exhausted. I assure you, if you can change your storage habbits, you can do very well. If my laptop supported SATA 3, it would be 2x faster. However, 300 MB/s is also a very good value, since the best spinning disks can supply 120 MB/s and they  still suck at random access. Finally, as a bonus, you can move your laptop freely when working because there is no moving parts -except fans- left, which I needed most!</p>
+
+</div>
+
+<h2>Comments</h2>
+<div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "mustafaakindev" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </main>
+
+    
+      
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-163369693-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+    
+  </body>
+</html>

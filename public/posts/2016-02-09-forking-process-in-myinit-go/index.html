@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.69.0" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Writing my own init with Go - Part 2 &middot; Mustafa Akın</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="https://mustafaakin.dev/"><h1>Mustafa Akın</h1></a>
+      <p class="lead">
+       SRE Architect @Atlassian Opsgenie, PhD Student @Bikkent University CS 
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li><a href="https://mustafaakin.dev/">Home</a> </li>
+        <li><a href="https://twitter.com/mustafaakin/"> Github </a></li><li><a href="https://www.linkedin.com/in/mustafaakin/"> LinkedIn </a></li><li><a href="https://github.com/mustafaakin/"> Twitter </a></li>
+      </ul>
+    </nav>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>Writing my own init with Go - Part 2</h1>
+  <time datetime=2016-02-09T00:00:00Z class="post-date">Tue, Feb 9, 2016</time>
+  <p>I am working on myinit.go. Init process is no good if it cannot spawn other processes. I will use the other processes for critical functionality, i.e getting an IP address for future interactivity over SSH or maybe HTTP, or possibly Web Sockets. Because, why not?</p>
+<p>Anyways, I modified <code>myinit.go</code> to following and put it in the <code>/init</code> folder to have a nicer structure. It basically spawns a new process, and prints it output. The modified init code is as follows:</p>
+<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="kn">package</span> <span class="nx">main</span> 
+
+<span class="kn">import</span> <span class="p">(</span>
+    <span class="s">&#34;log&#34;</span>
+    <span class="s">&#34;os&#34;</span>
+    <span class="s">&#34;os/exec&#34;</span>
+	<span class="s">&#34;io&#34;</span>
+<span class="p">)</span>
+
+
+<span class="kd">func</span> <span class="nf">execute</span><span class="p">(</span><span class="nx">filepath</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+    <span class="c1">// Prepare running a command!
+</span><span class="c1"></span>       
+    <span class="nx">cmd</span> <span class="o">:=</span> <span class="nx">exec</span><span class="p">.</span><span class="nf">Command</span><span class="p">(</span><span class="nx">filepath</span><span class="p">)</span>    
+    <span class="nx">sout</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">cmd</span><span class="p">.</span><span class="nf">StdoutPipe</span><span class="p">()</span>
+    <span class="nx">serr</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">cmd</span><span class="p">.</span><span class="nf">StderrPipe</span><span class="p">()</span>
+                
+    <span class="c1">// Start and get the output
+</span><span class="c1"></span>    <span class="nx">err</span> <span class="o">:=</span> <span class="nx">cmd</span><span class="p">.</span><span class="nf">Start</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+        <span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Error starting the program&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+    <span class="p">}</span>
+    
+    <span class="k">go</span> <span class="nx">io</span><span class="p">.</span><span class="nf">Copy</span><span class="p">(</span><span class="nx">os</span><span class="p">.</span><span class="nx">Stdout</span><span class="p">,</span> <span class="nx">sout</span><span class="p">)</span>
+    <span class="k">go</span> <span class="nx">io</span><span class="p">.</span><span class="nf">Copy</span><span class="p">(</span><span class="nx">os</span><span class="p">.</span><span class="nx">Stdout</span><span class="p">,</span> <span class="nx">serr</span><span class="p">)</span>    
+    
+    <span class="nx">err</span> <span class="p">=</span> <span class="nx">cmd</span><span class="p">.</span><span class="nf">Wait</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+        <span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Error waiting program&#34;</span><span class="p">)</span>
+    <span class="p">}</span>
+    
+    <span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Your program exited!&#34;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
+
+
+<span class="kd">func</span> <span class="nf">main</span><span class="p">(){</span>
+    <span class="nx">log</span><span class="p">.</span><span class="nf">SetOutput</span><span class="p">(</span><span class="nx">os</span><span class="p">.</span><span class="nx">Stderr</span><span class="p">)</span>
+    
+    <span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Hello world from Go!&#34;</span><span class="p">)</span>
+    <span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Gopher is alive!&#34;</span><span class="p">)</span>
+    
+    <span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Executing some binary!&#34;</span><span class="p">)</span>
+    
+    <span class="nf">execute</span><span class="p">(</span><span class="s">&#34;/init/test/mybinary&#34;</span><span class="p">)</span>    
+    <span class="c1">// Wait forever
+</span><span class="c1"></span>        
+    <span class="k">for</span> <span class="p">{</span>
+        
+    <span class="p">}</span>    
+<span class="p">}</span>
+</code></pre></div><p>And my <code>/init/test/mybinary.go</code> is just a println to stderr.</p>
+<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="kn">package</span> <span class="nx">main</span> 
+
+<span class="kn">import</span> <span class="p">(</span>
+    <span class="s">&#34;log&#34;</span>
+    <span class="s">&#34;os&#34;</span>
+<span class="p">)</span>
+
+<span class="kd">func</span> <span class="nf">main</span><span class="p">(){</span>
+    <span class="nx">log</span><span class="p">.</span><span class="nf">SetOutput</span><span class="p">(</span><span class="nx">os</span><span class="p">.</span><span class="nx">Stderr</span><span class="p">)</span>
+    <span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Hello world, stderr&#34;</span><span class="p">)</span>
+    
+    <span class="nx">log</span><span class="p">.</span><span class="nf">SetOutput</span><span class="p">(</span><span class="nx">os</span><span class="p">.</span><span class="nx">Stdout</span><span class="p">)</span>
+    <span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Hello world, stdout&#34;</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div><p>I upgraded to Ubuntu 16.04 having 4.4 Kernel, so outputs might change a little. For instance, in 3.19 I could not write to stdout, but now I can write to both stdout &amp; stderr as well.</p>
+<p>The output is following:</p>
+<div class="highlight"><pre class="chroma"><code class="language-text" data-lang="text">[    6.441931] EXT4-fs (sda1): mounted filesystem with ordered data mode. Opts: (null)
+done.
+Begin: Running /scripts/local-bottom ... done.
+Begin: Running /scripts/init-bottom ... done.
+2016/02/08 21:48:50 Hello world from Go!
+2016/02/08 21:48:50 Gopher is alive!
+2016/02/08 21:48:50 Executing some binary!
+2016/02/08 21:48:50 Hello world, stderr
+2016/02/08 21:48:50 Hello world, stdout
+2016/02/08 21:48:50 Your program exited!
+
+</code></pre></div><p>Copying the stdout and stderr with go is less then ideal, we should be able to just create files for each and pass their file descriptiors. At least that&rsquo;s what I think.</p>
+<p>Sometimes sync does not sync, I might be using it wrong. After a little research, I found out that <code>sudo blockdev --flushbufs /dev/nbd0p1</code> works better.</p>
+<p>I modified the code so that the stdout and stderr is redirected to files. Also, the kernel paremeters must have the <code>rw</code> flag or you have to remount the /dev/sda1 as rw, but changing kernel parameters are much more easier.</p>
+<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">$ kvm -m 1G -nographic -kernel vmlinuz-4.4.0-2-generic -initrd initrd.img-4.4.0-2-generic -append <span class="s2">&#34;console=ttyS0 root=/dev/sda1 rw init=/init/myinit&#34;</span> -hda mydisk.img 
+</code></pre></div><div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="nf">listFiles</span><span class="p">(</span><span class="nx">filepath</span> <span class="kt">string</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">files</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">ioutil</span><span class="p">.</span><span class="nf">ReadDir</span><span class="p">(</span><span class="nx">filepath</span><span class="p">)</span>
+    <span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">f</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">files</span> <span class="p">{</span>
+        <span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nf">Name</span><span class="p">())</span>
+    <span class="p">}</span>    
+<span class="p">}</span>
+
+<span class="kd">func</span> <span class="nf">execute</span><span class="p">(</span><span class="nx">filepath</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+    <span class="nx">cmd</span> <span class="o">:=</span> <span class="nx">exec</span><span class="p">.</span><span class="nf">Command</span><span class="p">(</span><span class="nx">filepath</span><span class="p">)</span>   
+    
+    <span class="nx">fout</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">os</span><span class="p">.</span><span class="nf">Create</span><span class="p">(</span><span class="s">&#34;/init/test/stdout&#34;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+        <span class="nx">log</span><span class="p">.</span><span class="nf">Fatal</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="nx">ferr</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">os</span><span class="p">.</span><span class="nf">Create</span><span class="p">(</span><span class="s">&#34;/init/test/stderr&#34;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+        <span class="nx">log</span><span class="p">.</span><span class="nf">Fatal</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+    <span class="p">}</span>
+    
+    <span class="nx">cmd</span><span class="p">.</span><span class="nx">Stdout</span> <span class="p">=</span> <span class="nx">fout</span>
+    <span class="nx">cmd</span><span class="p">.</span><span class="nx">Stderr</span> <span class="p">=</span> <span class="nx">ferr</span>
+    <span class="k">defer</span> <span class="nx">fout</span><span class="p">.</span><span class="nf">Close</span><span class="p">()</span>
+    <span class="k">defer</span> <span class="nx">ferr</span><span class="p">.</span><span class="nf">Close</span><span class="p">()</span>
+    <span class="o">...</span><span class="p">.</span>
+
+
+<span class="kd">func</span> <span class="nf">main</span><span class="p">(){</span>
+	<span class="o">...</span><span class="p">.</span>
+    <span class="nf">execute</span><span class="p">(</span><span class="s">&#34;/init/test/mybinary&#34;</span><span class="p">)</span>    
+    
+    <span class="nf">listFiles</span><span class="p">(</span><span class="s">&#34;/init/test&#34;</span><span class="p">)</span>
+    <span class="nx">sout</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">ioutil</span><span class="p">.</span><span class="nf">ReadFile</span><span class="p">(</span><span class="s">&#34;/init/test/stdout&#34;</span><span class="p">)</span>
+    <span class="nx">serr</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">ioutil</span><span class="p">.</span><span class="nf">ReadFile</span><span class="p">(</span><span class="s">&#34;/init/test/stderr&#34;</span><span class="p">)</span>
+    
+    <span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Stdout of program&#34;</span><span class="p">,</span> <span class="nb">string</span><span class="p">(</span><span class="nx">sout</span><span class="p">))</span>
+    <span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Stderr of program&#34;</span><span class="p">,</span> <span class="nb">string</span><span class="p">(</span><span class="nx">serr</span><span class="p">))</span>
+    <span class="o">...</span><span class="p">.</span>
+
+</code></pre></div><p>And then the output becomes:</p>
+<div class="highlight"><pre class="chroma"><code class="language-text" data-lang="text">2016/02/08 22:07:58 Hello world from Go!
+2016/02/08 22:07:58 Gopher is alive!
+2016/02/08 22:07:58 Executing some binary!
+2016/02/08 22:07:58 Your program exited!
+2016/02/08 22:07:58 mybinary
+2016/02/08 22:07:58 mybinary.go
+2016/02/08 22:07:58 stderr
+2016/02/08 22:07:58 stdout
+2016/02/08 22:07:58 Stdout of program 2016/02/08 22:07:58 Hello world, stdout
+
+2016/02/08 22:07:58 Stderr of program 2016/02/08 22:07:58 Hello world, stderr
+</code></pre></div><p>This has been a fun ride, I can spawn processes, see and save their outputs. However, I have no idea what will happen for long running commands. Because, unlike using <code>dup2</code>, I do not duplicate the actual file descriptors, but it uses <code>io.Copy</code> inside, and one or more Go routine is probably spawned in the background because docs for <code>os.Exec</code> states:</p>
+<div class="highlight"><pre class="chroma"><code class="language-text" data-lang="text">	// Stdout and Stderr specify the process&#39;s standard output and error.
+	//
+	// If either is nil, Run connects the corresponding file descriptor
+	// to the null device (os.DevNull).
+	//
+	// If Stdout and Stderr are the same writer, at most one
+	// goroutine at a time will call Write.
+	Stdout io.Writer
+	Stderr io.Writer
+</code></pre></div><p>and I see several Go routines for <code>io.Copy</code> in <code>stdin()</code> and <code>writerDescriptor()</code> functions inside it. Therefore, better solution would be to avoid Go&rsquo;s higher level functions such as <code>os.Command()</code> and use the <code>ForkExec(argv0 string, argv []string, attr *ProcAttr) (pid int, err error)</code> that takes the following structs as a parameter besides program name and parameters:</p>
+<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">type</span> <span class="nx">ProcAttr</span> <span class="kd">struct</span> <span class="p">{</span>
+        <span class="nx">Dir</span>   <span class="kt">string</span>    <span class="c1">// Current working directory.
+</span><span class="c1"></span>        <span class="nx">Env</span>   <span class="p">[]</span><span class="kt">string</span>  <span class="c1">// Environment.
+</span><span class="c1"></span>        <span class="nx">Files</span> <span class="p">[]</span><span class="kt">uintptr</span> <span class="c1">// File descriptors.
+</span><span class="c1"></span>        <span class="nx">Sys</span>   <span class="o">*</span><span class="nx">SysProcAttr</span>
+<span class="p">}</span>
+
+<span class="kd">type</span> <span class="nx">SysProcAttr</span> <span class="kd">struct</span> <span class="p">{</span>
+        <span class="nx">Chroot</span>      <span class="kt">string</span>         <span class="c1">// Chroot.
+</span><span class="c1"></span>        <span class="nx">Credential</span>  <span class="o">*</span><span class="nx">Credential</span>    <span class="c1">// Credential.
+</span><span class="c1"></span>        <span class="nx">Ptrace</span>      <span class="kt">bool</span>           <span class="c1">// Enable tracing.
+</span><span class="c1"></span>        <span class="nx">Setsid</span>      <span class="kt">bool</span>           <span class="c1">// Create session.
+</span><span class="c1"></span>        <span class="nx">Setpgid</span>     <span class="kt">bool</span>           <span class="c1">// Set process group ID to Pgid, or, if Pgid == 0, to new pid.
+</span><span class="c1"></span>        <span class="nx">Setctty</span>     <span class="kt">bool</span>           <span class="c1">// Set controlling terminal to fd Ctty (only meaningful if Setsid is set)
+</span><span class="c1"></span>        <span class="nx">Noctty</span>      <span class="kt">bool</span>           <span class="c1">// Detach fd 0 from controlling terminal
+</span><span class="c1"></span>        <span class="nx">Ctty</span>        <span class="kt">int</span>            <span class="c1">// Controlling TTY fd
+</span><span class="c1"></span>        <span class="nx">Foreground</span>  <span class="kt">bool</span>           <span class="c1">// Place child&#39;s process group in foreground. (Implies Setpgid. Uses Ctty as fd of controlling TTY)
+</span><span class="c1"></span>        <span class="nx">Pgid</span>        <span class="kt">int</span>            <span class="c1">// Child&#39;s process group ID if Setpgid.
+</span><span class="c1"></span>        <span class="nx">Pdeathsig</span>   <span class="nx">Signal</span>         <span class="c1">// Signal that the process will get when its parent dies (Linux only)
+</span><span class="c1"></span>        <span class="nx">Cloneflags</span>  <span class="kt">uintptr</span>        <span class="c1">// Flags for clone calls (Linux only)
+</span><span class="c1"></span>        <span class="nx">UidMappings</span> <span class="p">[]</span><span class="nx">SysProcIDMap</span> <span class="c1">// User ID mappings for user namespaces.
+</span><span class="c1"></span>        <span class="nx">GidMappings</span> <span class="p">[]</span><span class="nx">SysProcIDMap</span> <span class="c1">// Group ID mappings for user namespaces.
+</span><span class="c1"></span>        <span class="c1">// GidMappingsEnableSetgroups enabling setgroups syscall.
+</span><span class="c1"></span>        <span class="c1">// If false, then setgroups syscall will be disabled for the child process.
+</span><span class="c1"></span>        <span class="c1">// This parameter is no-op if GidMappings == nil. Otherwise for unprivileged
+</span><span class="c1"></span>        <span class="c1">// users this should be set to false for mappings work.
+</span><span class="c1"></span>        <span class="nx">GidMappingsEnableSetgroups</span> <span class="kt">bool</span>
+<span class="p">}</span>
+</code></pre></div><p>As you see this struct has many features from users to tty&rsquo;s settings and even uid-gid mappings! I am still reading how to handle tty stuff properly. This was just an experiment to see how can we spawn dumb processes that spawns and dies. As I mentioned earlier, I will use those processes to offload some functionality from init, such as getting an IP from DCHP and setting it on interfaces. Therefore, my init can be simpler.</p>
+
+</div>
+
+<h2>Comments</h2>
+<div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "mustafaakindev" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </main>
+
+    
+      
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-163369693-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+    
+  </body>
+</html>

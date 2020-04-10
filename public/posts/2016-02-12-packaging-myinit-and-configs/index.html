@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.69.0" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Writing my own init with Go - Part 3, Packaging/Configs &middot; Mustafa Akın</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="https://mustafaakin.dev/"><h1>Mustafa Akın</h1></a>
+      <p class="lead">
+       SRE Architect @Atlassian Opsgenie, PhD Student @Bikkent University CS 
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li><a href="https://mustafaakin.dev/">Home</a> </li>
+        <li><a href="https://twitter.com/mustafaakin/"> Github </a></li><li><a href="https://www.linkedin.com/in/mustafaakin/"> LinkedIn </a></li><li><a href="https://github.com/mustafaakin/"> Twitter </a></li>
+      </ul>
+    </nav>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>Writing my own init with Go - Part 3, Packaging/Configs</h1>
+  <time datetime=2016-02-12T00:00:00Z class="post-date">Fri, Feb 12, 2016</time>
+  <p>When this post gained much traction in HackerNews and r/golang, I was both suprised and happy. The general interest made me more motivated to do more and write more. And also some good discussions happend on <a href="https://news.ycombinator.com/item?id=11064694">HackerNews thread</a> that was &amp; will be helpful to me. I decided to package myinit in Go, and rename it to <a href="https://github.com/mustafaakin/gonit">gonit</a> Contributions and ideas are welcome through <a href="mailto:mustafa91@gmail.com">email</a> and in the issues of the GitHub repo.</p>
+<p>Earlier, I was exploring how to properly spawn processes. Upon discussion and exploring further, I found out that, I had to dig deeper. There is a nice function in <code>syscall</code> package, <code>func ForkExec(argv0 string, argv []string, attr *ProcAttr) (pid int, err error)</code> that forks and execs a given process with given arguments and additional <code>ProcAttr</code> in which you can define environment and open files. It handles most of the stuff, even the user/group namespaces. Of course, that function alone does not expose all raw functionality, but whatever you need can be possibly added via extending it with additional syscalls.</p>
+<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="nf">setupSignalHandler</span><span class="p">()</span> <span class="p">{</span>
+	<span class="nx">c</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="kd">chan</span> <span class="nx">os</span><span class="p">.</span><span class="nx">Signal</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+	<span class="nx">signal</span><span class="p">.</span><span class="nf">Notify</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span> <span class="nx">os</span><span class="p">.</span><span class="nx">Interrupt</span><span class="p">,</span>
+		<span class="nx">syscall</span><span class="p">.</span><span class="nx">SIGCHLD</span><span class="p">,</span>
+		<span class="nx">syscall</span><span class="p">.</span><span class="nx">SIGTERM</span><span class="p">,</span>
+		<span class="nx">syscall</span><span class="p">.</span><span class="nx">SIGKILL</span><span class="p">)</span>
+
+	<span class="k">go</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
+		<span class="k">for</span> <span class="nx">sig</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">c</span> <span class="p">{</span>
+			<span class="nx">log</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;captured %v&#34;</span><span class="p">,</span> <span class="nx">sig</span><span class="p">)</span>
+		<span class="p">}</span>
+	<span class="p">}()</span>
+<span class="p">}</span>
+
+<span class="o">...</span>
+
+<span class="nx">fstdin</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">os</span><span class="p">.</span><span class="nf">Create</span><span class="p">(</span><span class="nx">stdinpath</span><span class="p">)</span>
+<span class="nx">fstdout</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">os</span><span class="p">.</span><span class="nf">Create</span><span class="p">(</span><span class="nx">stdoutpath</span><span class="p">)</span>
+<span class="nx">fstderr</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">os</span><span class="p">.</span><span class="nf">Create</span><span class="p">(</span><span class="nx">stderrpath</span><span class="p">)</span>
+
+<span class="nx">procAttr</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">syscall</span><span class="p">.</span><span class="nx">ProcAttr</span><span class="p">{</span>
+	<span class="nx">Dir</span><span class="p">:</span>   <span class="s">&#34;/&#34;</span><span class="p">,</span>
+	<span class="nx">Env</span><span class="p">:</span>   <span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&#34;MYVAR=345&#34;</span><span class="p">},</span>
+	<span class="nx">Files</span><span class="p">:</span> <span class="p">[]</span><span class="kt">uintptr</span><span class="p">{</span><span class="nx">fstdin</span><span class="p">.</span><span class="nf">Fd</span><span class="p">(),</span> <span class="nx">fstdout</span><span class="p">.</span><span class="nf">Fd</span><span class="p">(),</span> <span class="nx">fstderr</span><span class="p">.</span><span class="nf">Fd</span><span class="p">()},</span>
+	<span class="nx">Sys</span><span class="p">:</span>   <span class="kc">nil</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="nx">pid</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">syscall</span><span class="p">.</span><span class="nf">ForkExec</span><span class="p">(</span><span class="nx">filepath</span><span class="p">,</span> <span class="kc">nil</span><span class="p">,</span> <span class="nx">procAttr</span><span class="p">)</span>
+</code></pre></div><p>I now spawn the services as in the above. I still write their outputs to file. By providing some sensible structure in <code>procAttr.Sys</code>, we can make the kernel allocate a tty for it, or make it use one from <code>/dev/pts</code>, I guess. I am still looking into that stuff for proper handling. I am catching SIGCHLD, but not so certain yet how to handle them properly. In the following order, sources of Sysvinit, Upstart, SystemD and Suckless Init is helping a lot.</p>
+<p>On the other hand, I converted the build, deploy and run pipeline in Makefile. Also, I used a better logger, the logger we deserve, logrus. It helps me to do the following type of logging, which is much better than regular string messages, or printf based messages.</p>
+<div class="highlight"><pre class="chroma"><code class="language-golang" data-lang="golang"><span class="nx">log</span><span class="p">.</span><span class="nf">WithFields</span><span class="p">(</span><span class="nx">log</span><span class="p">.</span><span class="nx">Fields</span><span class="p">{</span>
+	<span class="s">&#34;service&#34;</span><span class="p">:</span> <span class="nx">filepath</span><span class="p">,</span>
+	<span class="s">&#34;pid&#34;</span><span class="p">:</span>     <span class="nx">pid</span><span class="p">,</span>
+<span class="p">}).</span><span class="nf">Info</span><span class="p">(</span><span class="s">&#34;Started service succesfully&#34;</span><span class="p">)</span>
+</code></pre></div><p>A simple output is now as follows:</p>
+<div class="highlight"><pre class="chroma"><code class="language-text" data-lang="text"># make start_vm 
+rm -Rf /tmp/gonit-build 
+mkdir -p /tmp/gonit-build/init
+mkdir -p /tmp/gonit-build/services
+COMPILE init
+go build -o /tmp/gonit-build/init/gonit github.com/mustafaakin/gonit/cmd/init
+COMPILE services
+CGO_ENABLED=0 go build -o /tmp/gonit-build/services/networking github.com/mustafaakin/gonit/cmd/networking
+go build -o /tmp/gonit-build/services/terminals github.com/mustafaakin/gonit/cmd/terminals
+PACKAGE package
+# Folders, for better readability
+mkdir -p /tmp/gonit-disk/init
+mkdir -p /tmp/gonit-disk/init/services
+# Copy required bins
+cp /tmp/gonit-build/init/gonit /tmp/gonit-disk/init/gonit
+cp /tmp/gonit-build/services/networking /tmp/gonit-disk/init/services/networking
+cp /tmp/gonit-build/services/terminals  /tmp/gonit-disk/init/services/terminals
+# Copy configs
+cp config.yml /tmp/gonit-disk/config.yml
+sync
+blockdev --flushbufs /dev/nbd0p1
+blockdev --flushbufs /dev/nbd0
+sync
+sleep 2 
+RUN start_vm
+# TODO: The following sync and flushbufs needs to be changed, we will just disable cache on our image but it seems problematic on rbd?
+kvm -m 1G -nographic -kernel /boot/vmlinuz-4.4.0-2-generic -initrd /boot/initrd.img-4.4.0-2-generic -append &#34;console=ttyS0 root=/dev/sda1 rw init=/init/gonit quiet&#34; -hda ~/gonit-disk.img
+/dev/sda1: recovering journal
+/dev/sda1: clean, 28/65536 files, 10462/261888 blocks
+INFO[0000] The gonit is booting. Go is now in control.  
+INFO[0000] Starting services                             title=Gonit based OS version=0.1
+INFO[0000] Starting service                              service=networking
+INFO[0000] Started service succesfully                   pid=188 service=/init/services/networking
+INFO[0000] Waiting for 3 seconds                        
+INFO[0000] captured child exited                        
+INFO[0003] Service ended.                                service=networking stderr=I will do networking and stuff later
+lo  65536
+ens3 52:54:00:12:34:56 1500
+ stdout=WAT
+INFO[0003] Starting service                              service=terminals
+INFO[0003] Started service succesfully                   pid=191 service=/init/services/terminals
+INFO[0003] Waiting for 3 seconds                        
+INFO[0003] captured child exited                        
+INFO[0006] Service ended.                                service=terminals stderr=I will arrange terminals and stuff
+ stdout=
+</code></pre></div><p>I sometimes still have issues with syncing the disk image, sometimes it gets corrupt just before booting the image and init or some other tools fails.</p>
+<p>As you can see, we have some dummy services. They are defined in a .yaml file, that will be subject to change. We also need the dependencies, start order, waiting them properly and handling crashes and respawns. As they write their output to files, I just used sleep 3 and read the contents of the files, and logged them. In reality, they can be running continously, or just once/twice etc. I still have to decide how should the services be. The init might also watch the <code>config.yaml</code> for changes. Also, rightnow we just get sigchld, we should also wait for killed/died children so they don&rsquo;t turn into zombies.</p>
+<div class="highlight"><pre class="chroma"><code class="language-yaml" data-lang="yaml"><span class="k">version</span><span class="p">:</span><span class="w"> </span><span class="m">0.1</span><span class="w">
+</span><span class="w"></span><span class="k">title</span><span class="p">:</span><span class="w"> </span>Gonit<span class="w"> </span>based<span class="w"> </span>OS<span class="w">
+</span><span class="w"></span><span class="k">services</span><span class="p">:</span><span class="w">
+</span><span class="w">  </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>networking<span class="w">
+</span><span class="w">    </span><span class="k">description</span><span class="p">:</span><span class="w"> </span>Configures<span class="w"> </span>the<span class="w"> </span>networking<span class="w">
+</span><span class="w">  </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>terminals<span class="w">
+</span><span class="w">    </span><span class="k">description</span><span class="p">:</span><span class="w"> </span>Configures<span class="w"> </span>the<span class="w"> </span>TTYs<span class="w"> </span>for<span class="w"> </span>user<span class="w"> </span>input<span class="w">
+</span></code></pre></div><p>One more interesting thing, although I made <code>networking</code> and <code>terminals</code> as dummy programs, In <code>networking</code> I have used the <code>net</code> package, causing my binaries to not be completely static. Because, net uses some glibc bindings, they cannot be statically included. When you just <code>go build</code> you will see the dependencies with <code>ldd</code> as follows:</p>
+<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">$ go build -o /tmp/net cmd/networking/main.go <span class="o">&amp;&amp;</span> ldd /tmp/net
+	linux-vdso.so.1 <span class="o">=</span>&gt;  <span class="o">(</span>0x00007fffcc18b000<span class="o">)</span>
+	libpthread.so.0 <span class="o">=</span>&gt; /lib/x86_64-linux-gnu/libpthread.so.0 <span class="o">(</span>0x00007f1aac3b7000<span class="o">)</span>
+	libc.so.6 <span class="o">=</span>&gt; /lib/x86_64-linux-gnu/libc.so.6 <span class="o">(</span>0x00007f1aabfed000<span class="o">)</span>
+	/lib64/ld-linux-x86-64.so.2 <span class="o">(</span>0x0000562d6de4a000<span class="o">)</span>
+</code></pre></div><p>To overcome this issue, you have to use <code>CGO_ENABLED=0</code> before <code>go build</code> and it still works as expected both on my host machine and the VM (as seen in above).</p>
+<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">$ <span class="nv">CGO_ENABLED</span><span class="o">=</span><span class="m">0</span> go build -o /tmp/net cmd/networking/main.go <span class="o">&amp;&amp;</span> ldd /tmp/net
+	not a dynamic executable
+$ /tmp/net
+I will <span class="k">do</span> networking and stuff later
+WATlo  <span class="m">65536</span>
+enp3s0 18:67:b0:2c:50:5e <span class="m">1500</span>
+wlp2s0 c8:f7:33:e7:b8:55 <span class="m">1500</span>
+docker0 56:84:7a:fe:97:99 <span class="m">1500</span>
+virbr0 52:54:00:91:fc:ef <span class="m">1500</span>
+virbr0-nic 52:54:00:91:fc:ef <span class="m">1500</span>
+veth43bfe73 4a:df:b0:98:2a:f1 <span class="m">1500</span>
+</code></pre></div><p>As you see, there are still lots of stuff to do. But first, I have to decide how the system file layout should be. Standard layout is too standard, but I don&rsquo;t actually like it. Actually, it is not really related to init, but in near future, I will use my gonit to build a little useless distro that no one will probably use. It will also have a package manager, so deciding a file layout right now, or starting to think it would be a good idea. Yeah, I know who am I to change a file layout, but If you read this blog post series, this is just an experiment. Right now, I have the following structure in my mind:</p>
+<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">/kernel  <span class="c1"># boot images and initrds</span>
+/system
+	/gonit <span class="c1"># the init binary</span>
+	/config.yaml
+	/services
+		/networking
+			/bin
+			/logs
+			config.yaml
+		/terminals
+			/bin
+			/logs
+			config.yaml
+
+/programs   <span class="c1"># still thinking about it, cowardly refusing to name them apps</span>
+	/myprogram1 
+	/myprogram2
+
+/cache <span class="c1"># The cache if ever needed</span>
+	/services
+	/programs
+
+/libs <span class="c1"># for compiled libs</span>
+	/32
+	/64
+	/multiarch <span class="c1"># am I doing them right?</span>  
+
+<span class="c1"># I want to change them if possible, but too many programs will probably depend on them statically</span>
+/sys
+/fs
+/proc
+/run
+</code></pre></div><p>To join me in this experiment, I would like you to visit the <a href="https://github.com/mustafaakin/gonit">github.com/mustafaakin/gonit</a> , as I said earlier, any input is welcome. For my next post, I will look into networking in more detail. I know it is not init related, but I am trying to provide all the crucial utilities that will be base in my distro.</p>
+
+</div>
+
+<h2>Comments</h2>
+<div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "mustafaakindev" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </main>
+
+    
+      
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-163369693-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+    
+  </body>
+</html>

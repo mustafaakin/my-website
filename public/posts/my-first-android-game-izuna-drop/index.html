@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.69.0" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>My First Android Game: Izuna Drop &middot; Mustafa Akın</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="https://mustafaakin.dev/"><h1>Mustafa Akın</h1></a>
+      <p class="lead">
+       SRE Architect @Atlassian Opsgenie, PhD Student @Bikkent University CS 
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li><a href="https://mustafaakin.dev/">Home</a> </li>
+        <li><a href="https://twitter.com/mustafaakin/"> Github </a></li><li><a href="https://www.linkedin.com/in/mustafaakin/"> LinkedIn </a></li><li><a href="https://github.com/mustafaakin/"> Twitter </a></li>
+      </ul>
+    </nav>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>My First Android Game: Izuna Drop</h1>
+  <time datetime=2013-08-13T21:33:01Z class="post-date">Tue, Aug 13, 2013</time>
+  <p>As a part of my CS-319 Object-Oriented Software Engineering course,  I developed a computer game with Nail Akıncı and Naime Nur Çadırcı, called Izuna Drop. It is a simple space shooter clone. As the design was more imporant in that course, the implementation was not very efficient, it was written on Java, and due to our bugs, it requried approximately 1 GB of memory. If you wonder what that looked like, it is avaialable on <a href="https://github.com/mustafaakin/Izuna">GitHub/Izuna</a>.</p>
+<p>In this summer, I bought a Turkish book, <a href="http://www.kitapyurdu.com/kitap/default.asp?id=629585">Android Oyun Programlama</a>(Android Game Programming) It focuses on <a href="https://github.com/nicolasgramlich/AndEngine">AndEngine</a> which is a Java Game engine for Android. Book is nice, but it focuses on GLES1 version of AndEngine, which is now outdated and it is hard to find support, since the GLES2 version of AndEngine has many changes over the old one. However, it is a nice book to teach you the basics, it is not rocket science to make the transition to GLES2 on your own.</p>
+<p>Anyways, I have read the book and started to implement few simple scenes. The biggest problem in game development is that you cannot find graphical assets easily, which is the essential part. I know a little bit about designing, but it is not easy to design nice game assets. But Nail Akıncı, my team member has developed himself on modeling and animation and provided us nicely hand-made assets. (But if you Google enough, you can find very nice free 2D assets for your game). So, I have decided to re-implement our game for Android. It took almost a month, working on mostly nights during this hot summer. AndEngine simplifies many things that we had manually take care of on our PC version, so the Android version is much more faster and has small memory footprint.  It&rsquo;s source can be also viewed at <a href="http://github.com/mustafaakin/izuna-android">GitHub/izuna-android</a>. It is not perfect, for instance collisions are not pixel perfect, but overall it is a playable and enjoyable game with 5 levels and each level consisting 10 unique waves.</p>
+<p>Here are some screenshots from the Izuna Drop:</p>
+<p><a href="http://mustafaakin.files.wordpress.com/2013/08/s1.png"><img src="http://mustafaakin.files.wordpress.com/2013/08/s1.png?w=187" alt="s1"></a> <a href="http://mustafaakin.files.wordpress.com/2013/08/s2.png"><img src="http://mustafaakin.files.wordpress.com/2013/08/s2.png?w=187" alt="s2"></a> <a href="http://mustafaakin.files.wordpress.com/2013/08/s3.png"><img src="http://mustafaakin.files.wordpress.com/2013/08/s3.png?w=187" alt="s3"></a></p>
+<p>I would be glad if you could download it and test it:</p>
+<p><a href="https://play.google.com/store/apps/details?id=in.mustafaak.izuna"><img src="http://mustafaakin.files.wordpress.com/2013/08/get-it-on-google-play-store-logo.png?w=300" alt="get-it-on-google-play-store-logo"></a></p>
+<p>Thank you!</p>
+
+</div>
+
+<h2>Comments</h2>
+<div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "mustafaakindev" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </main>
+
+    
+      
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-163369693-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+    
+  </body>
+</html>

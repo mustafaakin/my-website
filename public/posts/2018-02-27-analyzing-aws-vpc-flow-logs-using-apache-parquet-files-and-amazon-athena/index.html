@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.69.0" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Analyzing AWS VPC Flow Logs using Apache Parquet Files and Amazon Athena &middot; Mustafa Akın</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="https://mustafaakin.dev/"><h1>Mustafa Akın</h1></a>
+      <p class="lead">
+       SRE Architect @Atlassian Opsgenie, PhD Student @Bikkent University CS 
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li><a href="https://mustafaakin.dev/">Home</a> </li>
+        <li><a href="https://twitter.com/mustafaakin/"> Github </a></li><li><a href="https://www.linkedin.com/in/mustafaakin/"> LinkedIn </a></li><li><a href="https://github.com/mustafaakin/"> Twitter </a></li>
+      </ul>
+    </nav>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>Analyzing AWS VPC Flow Logs using Apache Parquet Files and Amazon Athena</h1>
+  <time datetime=2018-02-27T15:01:01Z class="post-date">Tue, Feb 27, 2018</time>
+  <blockquote>
+<p>Originally appeared on <a href="https://engineering.opsgenie.com/analyzing-aws-vpc-flow-logs-using-apache-parquet-files-and-amazon-athena-27f8025371fa">Opsgenie Engineering Blog</a></p>
+</blockquote>
+<p>Network security is an essential topic for companies, as a compromised network is a direct threat to both users and the applications. The easiest way to maintain security is just blocking the unauthorized activity or only allowing the predetermined traffic. For instance, if you have an Elasticsearch cluster, there is no need to open ports other than 9200 and 9300 to your applications. However, as the number of components increase and the requirements of your software stack pile up, it becomes harder to allow the permissions correctly. This causes misconfigurations that can allow unintended access into your network.</p>
+<p>Proper monitoring is critical even for a simple web application to ensure the availability and reliability of your system. It is like unit testing, but from a different perspective. Most people monitor the CPU utilization, active connections, request counts by status codes, individual errors and act upon them. It is also easy to monitor the network activity. All your network activity is a sequence of various types of packets, such as TCP, UDP, ICMP packets traveling through the internet. Each packet has a source address, destination address, and depending on protocols; they have source and destination ports. So, if you can count how many packets and bytes are sent to each host, you would obtain a pretty useful information which is called a network flow. If a backend server is connecting to an address you do not expect, you may assume your application is compromised.</p>
+<p>There are different ways of collecting network flow statistics. Standard protocols such as Netflow, SFlow, and IPFix allow collecting network flow information from servers, network switches and routers. However, if you are an Amazon Web Services user, your VPC (Virtual Private Cloud) logs are exported to Cloudwatch in the following format:</p>
+<p><img src="/img/0__sj7gKt6zqTI1FRjf." alt=""></p>
+<p>Each flow gives you enough information about the network activity since you can collect all of the exchanged information metadata. Compared to the standard flow formats, there is also an <em>Action</em> field, which indicates whether the packet is allowed or dropped. Dropping a packet occurs due to the security group rules or network ACL rules of the VPC. Dropped packets can notify you of the bots that are surveying the internet, or an internal service that is trying to connect to a wrong server, or even worse, an attacker inside your subnet trying to find a hole by brute forcing passwords. Besides the network security concerns, you can also see the most communicating hosts and plan better deployment strategies, divide servers or services to similar pieces. You can even use placement groups for close proximities.</p>
+<h3 id="alternatives-for-analysing-vpclogs">Alternatives for analysing VPC logs</h3>
+<p>As there are loads of information sitting on VPC Flow logs, it would be very logical to be able to query them. However, all you can do is search as they sit in CloudWatch. If you want to aggregate or run advanced queries, you have to export them to somewhere suitable.</p>
+<p>ElasticSearch is one of the easiest ways to query, but it is not great for ad-hoc analysis as writing aggregation queries is hard. You might want to import them to a relational database, however, if your network consists of a large number of endpoints, you will probably have billions of flows, and it might not scale well. You might go for a serverless solution, as <a href="https://aws.amazon.com/blogs/big-data/analyzing-vpc-flow-logs-with-amazon-kinesis-firehose-amazon-athena-and-amazon-quicksight/">mentioned in this AWS Blog Post</a>, and export these logs to S3, and use Amazon Athena, a managed Presto service, that can query files in S3 with SQL. Since Amazon Athena is a managed service, you only pay for the scanned data for each query, and it is currently 5$ per TB of data.</p>
+<p>The blog post describes attaching Firehose to Cloudwatch Log Group of the VPC flow logs, but it saves the data in compressed text format, which is not very cost efficient as it requires reading all of the data. The blog post also hints to use partitioning. Partitioning helps to reduce the number of files to be queried. However, even with partitioning the data, files still need to be decompressed and parsed by regular expressions so that it can be converted to the columns. This process still takes a lot of time, since reading-parsing is done each time you want to query. Another recommendation is on using columnar file formats such as Apache Parquet, but no detail is given.</p>
+<p><a href="https://github.com/awslabs/aws-big-data-blog/tree/master/aws-blog-spark-parquet-conversion">Most blog posts</a> urge you to use Spark since it supports Parquet, but using Spark even with Amazon EMR is a hassle and not required for a simple conversion like this. In the following part, we will describe how you can use plain Java to convert some texts to nicely formatted Parquet files. But first, you need to understand how do columnar files work, and how you can benefit from them.</p>
+<h3 id="columnar-files-and-apacheparquet">Columnar Files and Apache Parquet</h3>
+<p>Columnar files gained popularity with big data systems. Compared to regular text-based formats, they are binary formats which can be parsed systemically and faster. For instance, a CSV file consists of many lines, each line corresponding to a row. Within each line, many attributes, i.e., columns, persist, such as name, age, etc. If you would like to get the average age of all the data, you need to read each line, extract the age column, parse it into an integer, and calculate the average. You probably used a very tiny portion of the file. However, you have read all of the data. This whole process is highly inefficient, slow, and can cost you a lot.</p>
+<p>On the other hand, columnar formats allow partial reading of the file, so that only requested columns are fetched. The file is organized as columns instead of rows. Also, files have metadata at the beginning, specifying the location of each column in the file, so you can directly jump to the relevant byte of the data and skip the unrelated ones. Some columnar files’ metadata also has more information, such as range of the values, or some data structures like bloom filters that can help filter out the data without even reading it. For example, if a file consists of ages between 25–30 and your query is asking for the average salary of people who are older than 40, only metadata is read and skipped. As you can imagine, this filtering can speed up queries significantly. However, one disadvantage is that columnar files are often non-extendable, meaning you cannot add new data without constructing a completely new file. To simply put it, they are immutable.</p>
+<p>Apache Parquet is an open source columnar &amp; compressed file system in the Hadoop ecosystem, which is supported by many tools. It is based on record shredding and assembly algorithm described in Google’s famous research paper, <a href="https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/36632.pdf">Dremel: Interactive Analysis of Web-Scale Datasets</a>. This paper is also the foundation for the Apache Drill, a query engine and Google’s managed BigQuery service. Compared to other columnar formats that are flattening the data, it is also efficient for nested data.</p>
+<p>Apache Parquet supports GZIP, SNAPPY, LZO, ZLIB compressions. SNAPPY allows fast compression-decompression, but GZIP allows higher compression ratios. LZO is also another alternative that is focused on rapid decompressions, while ZLIB has higher compression ratios. Regardless of the compression algorithm, since columns are grouped and they mostly share common characteristics, same words, etc., they can be encoded efficiently and compressed in great ratios. We have seen 5–20x file size reductions compared to CSV files.</p>
+<h3 id="apache-presto-and-amazonathena">Apache Presto and Amazon Athena</h3>
+<p><a href="https://prestodb.io/">Presto</a> is a distributed SQL query engine from Facebook, that can query structured data from Cassandra or Hive tables. It has various sources. Hive tables can point to columnar files across multiple storage systems such as S3 or HDFS. Presto is an improvement over traditional Hive which executes queries as Hadoop Map-Reduce tasks, which is slow. There is also an alternative, Apache Drill, which does not need Hive and can directly query the files. Presto can also make complex join queries, inner queries and works very fast.</p>
+<p>Athena is a managed Presto service by AWS. You can define tables for CSV, Parquet, ORC, JSON. Compressed JSON/CSV files are stored in S3. It can even use RegEx to extract the columns on the fly. However, Athena only supports selection queries. It means you can’t modify the existing data. It is a managed service; meaning that, you do not control or pay for any CPU or RAM, you only pay for the total data scanned. Therefore, if you use columnar storage files, your processing isn’t only fast; it also scans much fewer data, hence much cheaper. Currently, the cost is 5$ per TB scanned data.</p>
+<h3 id="partitioning-thedata">Partitioning the Data</h3>
+<p>Big data systems often make use of partitioning the data, since they can’t build indexes upon data as it yields to locks which affect scaling. As partitioning can’t be changed later (it will need to re-read &amp; write all of the data), it needs to be planned carefully. The most common partitioning scheme is partitioning by date. Since most of the data we produce is time-based, it works nice enough. However, having too many partitions can lead to a fewer amount of data in each bucket, and causes a delay since too many partitions might be read for some queries. Therefore, partitioning by <em>minute</em> is probably not a good choice. Partition keys should create evenly distributed partitions as much as possible. Otherwise, your load can’t be distributed enough to scale. Athena needs to know partitions. Developers should add partitions manually by executing <em>ALTER TABLE ADD PARTITION</em> command or <em>MSCK REPAIR</em> that can detect new partitions if you set it up correctly. However, bear in mind that <em>MSCK REPAIR</em> can take a lot of time in S3 if there are lots of files.</p>
+<p><img src="/img/0__OQU8SDM0ytvcD5NM." alt="An example partitoning, column selection and filetering example: SELECT avg(age) FROM users WHERE date = ‘2018–02’ AND name LIKE ‘A%’.  Data is partitioned by date field and name column is used in filtering and age column is extracted. The other columns such as ssn and address are not read at all.">
+An example partitoning, column selection and filetering example: <strong><em>SELECT avg(age) FROM users WHERE date = ‘2018–02’ AND name LIKE ‘A%’.</em></strong>  Data is partitioned by <strong>date</strong> field and <strong>name</strong> column is used in filtering and <strong>age</strong> column is extracted. The other columns such as <strong>ssn</strong> and <strong>address</strong> are not read at all.</p>
+<h3 id="creating-parquet-files-with-java--awslambda">Creating Parquet Files with Java &amp; AWS Lambda</h3>
+<p><a href="https://github.com/awslabs/aws-big-data-blog/tree/master/aws-blog-spark-parquet-conversion">AWS documentation recommends</a> using Amazon EMR for converting files to Apache Parquet format. But this is a little overkill. Writing and monitoring Spark jobs is hard. Instead, we will use the following scheme:</p>
+<ul>
+<li>Create a Firehose stream, with a nice buffer, compression, and a destination S3 bucket with a prefix</li>
+<li>Put Firehose subscription filter to CloudWatch log group of VPC Logs</li>
+<li>Create a new function and use the above bucket and prefix as a trigger to AWS Lambda</li>
+</ul>
+<p>Yes, it is that simple. It is serverless and can quickly scale. As Firehose buffers the data by second or the total data received, it has a delay. The submitted data either needs to be under 1MB or you should wait 60 seconds for the data to be written to S3. In some cases, this delay is significant, and if you need real-time analysis, you should use Kinesis Streams instead of Firehose. However, as we are querying data ad-hoc, we often don’t require near real-time results. We can live with those limitations.</p>
+<p>In our experiments, we have set a 128 MB buffer with 15 minutes of timeout. We also used a transforming lambda to convert the logs to JSON format, so that Firehose outputs the flow log structure instead of a Cloudwatch log structure. A 128 MB of VPC Logs JSON data becomes 5 MB with GZIP. When converted to Parquet with Snappy compression, it becomes as low as 3 MB. Even though Snappy compression tends to be large, using related columns in compression helps to reduce the data.</p>
+<p><img src="/img/0____eARcj4HHd2oXCLB." alt="Architecture of transforming VPC Flow logs to Parquet Files with Firehose and Lambda">
+Architecture of transforming VPC Flow logs to Parquet Files with Firehose and Lambda</p>
+<h3 id="implementation-details">Implementation Details</h3>
+<p>Now, we’ll see how we can create Parquet files with Java. Apache Parquet is officially supported on Java and C++. In our blog post, we have chosen Java to implement creating Parquet files from VPC flow logs, as AWS Lambda supports Java 8 and we are more comfortable with it. First of all, you have to include Parquet and Hadoop libraries in your dependency manager. In our case, we use Maven and you should add these dependencies:</p>
+<div class="highlight"><pre class="chroma"><code class="language-xml" data-lang="xml"><span class="nt">&lt;dependency&gt;</span>
+    <span class="nt">&lt;groupId&gt;</span>org.apache.parquet<span class="nt">&lt;/groupId&gt;</span>
+    <span class="nt">&lt;artifactId&gt;</span>parquet-common<span class="nt">&lt;/artifactId&gt;</span>
+    <span class="nt">&lt;version&gt;</span>1.9.0<span class="nt">&lt;/version&gt;</span>
+<span class="nt">&lt;/dependency&gt;</span>
+
+<span class="nt">&lt;dependency&gt;</span>
+    <span class="nt">&lt;groupId&gt;</span>org.apache.parquet<span class="nt">&lt;/groupId&gt;</span>
+    <span class="nt">&lt;artifactId&gt;</span>parquet-avro<span class="nt">&lt;/artifactId&gt;</span>
+    <span class="nt">&lt;version&gt;</span>1.9.0<span class="nt">&lt;/version&gt;</span>
+<span class="nt">&lt;/dependency&gt;</span>
+
+<span class="nt">&lt;dependency&gt;</span>
+    <span class="nt">&lt;groupId&gt;</span>org.apache.parquet<span class="nt">&lt;/groupId&gt;</span>
+    <span class="nt">&lt;artifactId&gt;</span>parquet-hadoop<span class="nt">&lt;/artifactId&gt;</span>
+    <span class="nt">&lt;version&gt;</span>1.9.0<span class="nt">&lt;/version&gt;</span>
+<span class="nt">&lt;/dependency&gt;</span>
+
+<span class="nt">&lt;dependency&gt;</span>
+    <span class="nt">&lt;groupId&gt;</span>org.apache.hadoop<span class="nt">&lt;/groupId&gt;</span>
+    <span class="nt">&lt;artifactId&gt;</span>hadoop-common<span class="nt">&lt;/artifactId&gt;</span>
+    <span class="nt">&lt;version&gt;</span>2.7.3<span class="nt">&lt;/version&gt;</span>
+<span class="nt">&lt;/dependency&gt;</span>
+</code></pre></div><p>Beware that Hadoop libraries are large, and your JAR files can become too clumsy. You can exclude some libraries in our case, but it is left as an exercise to you since our resulting function code is under 50MB.</p>
+<p>We defined our Flow Logs as a POJO (Plain Old Java Object) with proper getters and setters. Parquet files require strict schemas, so they need to be defined when opening a new file writer. Parquet includes a helper function that can use reflection to generate schema like JSON encoding libraries. The following code generates a Parquet writer for your POJO:</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">Configuration</span> <span class="n">conf</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Configuration</span><span class="o">();</span>
+<span class="n">Path</span> <span class="n">p</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Path</span><span class="o">(</span><span class="s">&#34;data.parquet&#34;</span><span class="o">);</span> <span class="c1">// This is not java.nio.file.Path     
+</span><span class="c1"></span>
+<span class="n">ParquetWriter</span><span class="o">&lt;</span><span class="n">FlowLogs</span><span class="o">&gt;</span> <span class="n">writer</span> <span class="o">=</span> <span class="n">AvroParquetWriter</span><span class="o">.&lt;</span><span class="n">FlowLog</span><span class="o">&gt;</span><span class="n">builder</span><span class="o">(</span><span class="n">p</span><span class="o">)</span>
+    <span class="o">.</span><span class="na">withSchema</span><span class="o">(</span><span class="n">ReflectData</span><span class="o">.</span><span class="na">AllowNull</span><span class="o">.</span><span class="na">get</span><span class="o">().</span><span class="na">getSchema</span><span class="o">(</span><span class="n">FlowLog</span><span class="o">.</span><span class="na">class</span><span class="o">))</span>
+    <span class="o">.</span><span class="na">withDataModel</span><span class="o">(</span><span class="n">ReflectData</span><span class="o">.</span><span class="na">get</span><span class="o">())</span>
+    <span class="o">.</span><span class="na">withConf</span><span class="o">(</span><span class="n">conf</span><span class="o">)</span>
+    <span class="o">.</span><span class="na">withCompressionCodec</span><span class="o">(</span><span class="n">CompressionCodecName</span><span class="o">.</span><span class="na">SNAPPY</span><span class="o">)</span>
+    <span class="o">.</span><span class="na">withWriteMode</span><span class="o">(</span><span class="n">Mode</span><span class="o">.</span><span class="na">OVERWRITE</span><span class="o">)</span>
+    <span class="o">.</span><span class="na">build</span><span class="o">();</span>
+
+<span class="n">FlowLog</span> <span class="n">flowLog</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FlowLog</span><span class="o">().</span><span class="na">setVersion</span><span class="o">(...)</span>
+<span class="n">writer</span><span class="o">.</span><span class="na">write</span><span class="o">(</span><span class="n">flowLog</span><span class="o">)</span>
+</code></pre></div><p>If you do not want to use Reflection, you can also generate a Schema by hand. However, it is more verbose, and you need to be more careful. You will have complete control over your schema. Reflection will fail to encode generic maps, i.e., you can’t correctly encode Map&lt;String,Object&gt; to Parquet. However, you can have inner objects with proper serializable fields. Parquet handles nested data correctly if done correctly.</p>
+<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">SchemaBuilder</span><span class="o">.</span><span class="na">RecordBuilder</span><span class="o">&lt;</span><span class="n">Schema</span><span class="o">&gt;</span> <span class="n">builder</span> <span class="o">=</span> <span class="n">SchemaBuilder</span>
+        <span class="o">.</span><span class="na">record</span><span class="o">(</span><span class="s">&#34;flow_logs&#34;</span><span class="o">).</span><span class="na">namespace</span><span class="o">(</span><span class="s">&#34;com.opsgenie&#34;</span><span class="o">);</span>
+
+<span class="n">schema</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="na">fields</span><span class="o">()</span>
+    <span class="o">.</span><span class="na">name</span><span class="o">(</span><span class="s">&#34;version&#34;</span><span class="o">).</span><span class="na">type</span><span class="o">().</span><span class="na">intType</span><span class="o">().</span><span class="na">intDefault</span><span class="o">(</span><span class="n">0</span><span class="o">)</span>
+    <span class="o">.</span><span class="na">name</span><span class="o">(</span><span class="s">&#34;account&#34;</span><span class="o">).</span><span class="na">type</span><span class="o">().</span><span class="na">stringType</span><span class="o">().</span><span class="na">stringDefault</span><span class="o">(</span><span class="s">&#34;&#34;</span><span class="o">)</span>
+    <span class="o">.</span><span class="na">name</span><span class="o">(</span><span class="s">&#34;interfaceId&#34;</span><span class="o">).</span><span class="na">type</span><span class="o">().</span><span class="na">stringType</span><span class="o">().</span><span class="na">stringDefault</span><span class="o">(</span><span class="s">&#34;&#34;</span><span class="o">)</span>
+    <span class="o">.</span><span class="na">name</span><span class="o">(</span><span class="s">&#34;sourceAddress&#34;</span><span class="o">).</span><span class="na">type</span><span class="o">().</span><span class="na">stringType</span><span class="o">().</span><span class="na">stringDefault</span><span class="o">(</span><span class="s">&#34;&#34;</span><span class="o">)</span>
+    <span class="c1">// continues for remaining 10 fields..
+</span><span class="c1"></span>
+<span class="n">ParquetWriter</span><span class="o">&lt;</span><span class="n">FlowLogs</span><span class="o">&gt;</span> <span class="n">writer</span> <span class="o">=</span> <span class="n">AvroParquetWriter</span><span class="o">.&lt;</span><span class="n">FlowLog</span><span class="o">&gt;</span><span class="n">builder</span><span class="o">(</span><span class="n">p</span><span class="o">)</span>
+    <span class="o">.</span><span class="na">withSchema</span><span class="o">(</span><span class="n">schema</span><span class="o">)</span>
+    <span class="o">.</span><span class="na">withConf</span><span class="o">(</span><span class="n">conf</span><span class="o">)</span>
+    <span class="o">.</span><span class="na">withCompressionCodec</span><span class="o">(</span><span class="n">CompressionCodecName</span><span class="o">.</span><span class="na">SNAPPY</span><span class="o">)</span>
+    <span class="o">.</span><span class="na">withWriteMode</span><span class="o">(</span><span class="n">Mode</span><span class="o">.</span><span class="na">OVERWRITE</span><span class="o">)</span>
+    <span class="o">.</span><span class="na">build</span><span class="o">();</span>
+
+<span class="n">GenericData</span><span class="o">.</span><span class="na">Record</span> <span class="n">record</span> <span class="o">=</span> <span class="k">new</span> <span class="n">GenericData</span><span class="o">.</span><span class="na">Record</span><span class="o">(</span><span class="n">schema</span><span class="o">);</span>
+    <span class="n">record</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">&#34;version&#34;</span><span class="o">,</span> <span class="n">log</span><span class="o">.</span><span class="na">getVersion</span><span class="o">());</span>
+    <span class="n">record</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">&#34;account&#34;</span><span class="o">,</span> <span class="n">log</span><span class="o">.</span><span class="na">getAccount</span><span class="o">());</span>
+    <span class="n">record</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">&#34;interfaceId&#34;</span><span class="o">,</span> <span class="n">log</span><span class="o">.</span><span class="na">getInterfaceId</span><span class="o">());</span>
+    <span class="n">record</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">&#34;sourceAddress&#34;</span><span class="o">,</span> <span class="n">log</span><span class="o">.</span><span class="na">getSourceAddress</span><span class="o">());</span>
+    <span class="c1">// continues for remaining 10 fields..
+</span><span class="c1"></span>
+<span class="n">writer</span><span class="o">.</span><span class="na">write</span><span class="o">(</span><span class="n">record</span><span class="o">)</span>
+</code></pre></div><p>Performance-wise, they are not significantly different, since most time is spent on compression and encoding. The overhead of reflection becomes negligible. Parquet files are cached in memory before written to a file, so you need to ensure that the total data can fit into memory. Parquet can flush the memory contents once in a while. However, it will affect the compression ratios.</p>
+<p>To create a table in Athena, you need to execute the following query:</p>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="k">CREATE</span> <span class="k">EXTERNAL</span> <span class="k">TABLE</span> <span class="o">`</span><span class="n">flows</span><span class="o">`</span><span class="p">(</span>
+  <span class="o">`</span><span class="k">version</span><span class="o">`</span> <span class="nb">int</span><span class="p">,</span> 
+  <span class="o">`</span><span class="n">account</span><span class="o">`</span> <span class="n">string</span><span class="p">,</span> 
+  <span class="o">`</span><span class="n">interfaceid</span><span class="o">`</span> <span class="n">string</span><span class="p">,</span> 
+  <span class="o">`</span><span class="n">sourceaddress</span><span class="o">`</span> <span class="n">string</span><span class="p">,</span> 
+  <span class="o">`</span><span class="n">destinationaddress</span><span class="o">`</span> <span class="n">string</span><span class="p">,</span> 
+  <span class="o">`</span><span class="n">sourceport</span><span class="o">`</span> <span class="nb">int</span><span class="p">,</span> 
+  <span class="o">`</span><span class="n">destinationport</span><span class="o">`</span> <span class="nb">int</span><span class="p">,</span> 
+  <span class="o">`</span><span class="n">protocol</span><span class="o">`</span> <span class="nb">int</span><span class="p">,</span> 
+  <span class="o">`</span><span class="n">packets</span><span class="o">`</span> <span class="nb">int</span><span class="p">,</span> 
+  <span class="o">`</span><span class="n">bytes</span><span class="o">`</span> <span class="nb">int</span><span class="p">,</span> 
+  <span class="o">`</span><span class="n">starttime</span><span class="o">`</span> <span class="k">timestamp</span><span class="p">,</span> 
+  <span class="o">`</span><span class="n">endtime</span><span class="o">`</span> <span class="k">timestamp</span><span class="p">,</span> 
+  <span class="o">`</span><span class="n">action</span><span class="o">`</span> <span class="n">string</span><span class="p">,</span> 
+  <span class="o">`</span><span class="n">logstatus</span><span class="o">`</span> <span class="n">string</span><span class="p">)</span>
+<span class="n">STORED</span> <span class="k">AS</span> <span class="n">PARQUET</span>
+<span class="k">LOCATION</span> <span class="s1">&#39;s3://mybucket/myflowlogs&#39;</span>
+<span class="n">tblproperties</span> <span class="p">(</span><span class="s2">&#34;parquet.compress&#34;</span><span class="o">=</span><span class="s2">&#34;SNAPPY&#34;</span><span class="p">);</span>
+</code></pre></div><p>That’s it. The above code generates a Parquet file, ready to be written to S3. No need for Spark or Mapreduce jobs when you have an AWS Lambda function! After you define your table in Athena, you can query them. You can make use of partitioning by putting the files in proper folders as described in the documentation and tell Athena about new partitions as they arrive. One important note is that, if you have set a small buffer, you will generate many small Parquet files. They will negatively affect the performance of Athena queries since you will need to read lots of files. You might still want to use small buffers for reducing the delays if you are time-sensitive, but another Lambda function should take the small files in your partitions and merge them to larger files.</p>
+<p>You can use Parquet files not just in Flow logs, but also to convert other AWS service logs such as ELB logs, Cloudfront logs, Cloudtrail logs. Moreover, you can use these files for your data and connect Athena to BI tools and get insane scalability at minimal cost.</p>
+<h3 id="flow-analysis-with-sqlqueries">Flow analysis with SQL Queries</h3>
+<p>Now, back to our main goal. The reason we used the implementation above was to reduce the file size with Parquet to make the flow log analysis fast &amp; cost efficient. We have approximately 10 GB of flow logs as Parquet files (~240 GB uncompressed JSON format). We ran our code in a demo environment for a month to share some anonymized analysis to our fellow readers. Please note that, there are too many small Parquet files, and if you were to merge those files into bigger Parquet files, it would take much less time. You can spin up another lambda for that purpose, too!</p>
+<p>The above query finds the most 10 active hosts in our VPC, and scans 3.52 GB of data and runs in 7.54 seconds. As it requests only one column, it does not use all the data.</p>
+<p>The above query, which lists the most communicating hosts, scanned 4.59 GB of data and completed in 9.83 seconds. As we queried both source address and destination address, the total size of the scanned data increased. However, it is still less than the full data size since we skipped all the columns.</p>
+<p>The above query, which gives us the REJECT actions grouped by ports, scanned 2.16 GB of data in 6.78 seconds. We confirmed that people mostly try to connect through SSH, Telnet, RDP ports and get blocked by the power of security groups and ACLs (Access Control Lists).</p>
+<p>The above query uses <em>corr keyword</em>, which calculates the correlation between two variables. We expect the number of bytes to be correlated with the packets sent. For packets which were rejected, the correlation value is almost 1 since a rejected client just sends minimal packets. However, an accepted client sends various size of bytes, so the correlation value reduces to 0.88. The query scanned 2.16 GB data and took 5.23 seconds in our case.</p>
+<p>Our internal network’s IP starts with 10. So we use the string function to split the IP address by the dot, and group by the first part to identify an IP address is whether internal or external. We also group by action field, so that we can find out what portion of the packets are blocked for both internal and external networks. The query took 7.41 seconds and scanned 2.44 GB data.</p>
+<p>The above query is almost the same as the first query. However, it uses sampling to reduce the number of rows to 1/10 of the original data. It still took 6.48 seconds due to having many small files. However, it only scanned 344 MB of data and gave a similar result. Sometimes, sampling can be useful to you as you might just need a summary of data, not exact values.</p>
+<p>You can have as many queries as you want, you are only limited by your SQL abilities, and functionalities of Apache Presto. Amazon Athena scales nicely for even petabytes of data and people have been using Presto for many years. So, you are in good hands!</p>
+
+</div>
+
+<h2>Comments</h2>
+<div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "mustafaakindev" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </main>
+
+    
+      
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-163369693-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+    
+  </body>
+</html>

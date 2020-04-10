@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.69.0" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>WSTP - File Transver Over Websockets &middot; Mustafa Akın</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="https://mustafaakin.dev/"><h1>Mustafa Akın</h1></a>
+      <p class="lead">
+       SRE Architect @Atlassian Opsgenie, PhD Student @Bikkent University CS 
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li><a href="https://mustafaakin.dev/">Home</a> </li>
+        <li><a href="https://twitter.com/mustafaakin/"> Github </a></li><li><a href="https://www.linkedin.com/in/mustafaakin/"> LinkedIn </a></li><li><a href="https://github.com/mustafaakin/"> Twitter </a></li>
+      </ul>
+    </nav>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>WSTP - File Transver Over Websockets</h1>
+  <time datetime=2012-04-27T23:31:51Z class="post-date">Fri, Apr 27, 2012</time>
+  <p>If you were following my blog, you may seem that I have once tried to make WS-FTP project with Java, however the web-sockets were on draft and it was changing quickly and they were not safe. Meantime, I have learned and mastered NodeJS and met Socket.io, and I decided to use them, since they were providing a better interface and it was much more easier to code a web server with NodeJS rather than Java.</p>
+<p>The project I have made is very simple and not optimized. I quickly wanted to demonstrate the concept and will try to explain the workflow now:</p>
+<ol>
+<li>NodeJS server is listening on port 3000. It both provides socket.io interface and a web-interface for administration (not implemented yet, but that&rsquo;s the idea)</li>
+<li>Chrome Extension (Client) requests unlimited stroage and ability to connect any site, so connection can be established.</li>
+<li>Client connects to the server. Asks for any arbitrary folder contents, with filenames and size.</li>
+<li>Client wants to download a file asks for block 0 of file. And depending on size, it adds N requests to the work queue.</li>
+<li>Server just opens the file, reads the requested block. In my app, block sizes are 8 KBs.</li>
+<li>Whenever a block is gathered on client, it constructs a BLOB object and saves it in memory.</li>
+<li>After consturction of BLOB, client pops 2 tasks from queue and wants them.</li>
+<li>This processes continues until all the blocks are fetched. Client saves the data to Chrome&rsquo;s sandboxed filesystem, in which user can download the file to local filesystem.</li>
+</ol>
+<p>As you  can see, it is very primitive, only 1 connection and 1 transfer at a time, and if you install it it will not have a very nice GUI, however, it will certainly be a starting point. Currently there are some issues:</p>
+<ul>
+<li>It&rsquo;s single threaded and upon recieving a packet from a socket, Chrome can hang depending on file size.</li>
+<li>Only 1 connection, 1 transfer at a time.</li>
+<li>No nice GUI, but it will about to come!</li>
+<li>File saving, handling in memory is not efficient with this way, needs a better algorithm, some temproary disk access.</li>
+</ul>
+<p>Additionally, as you can imagine, this can be asily turned into a P2P system. Bascially, we download blocks and there is no reason to not downlaod blocks from multiple clients. I have made this project available on GitHub, so anyone can easily access it and freely use it and maybe extend it!</p>
+<p><a href="https://github.com/mustafaakin/wsftp">https://github.com/mustafaakin/wsftp</a></p>
+
+</div>
+
+<h2>Comments</h2>
+<div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "mustafaakindev" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </main>
+
+    
+      
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-163369693-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+    
+  </body>
+</html>

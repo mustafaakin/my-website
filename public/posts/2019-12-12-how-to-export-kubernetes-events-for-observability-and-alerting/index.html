@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.69.0" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>How to Export Kubernetes Events for Observability and Alerting &middot; Mustafa Akın</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="https://mustafaakin.dev/"><h1>Mustafa Akın</h1></a>
+      <p class="lead">
+       SRE Architect @Atlassian Opsgenie, PhD Student @Bikkent University CS 
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li><a href="https://mustafaakin.dev/">Home</a> </li>
+        <li><a href="https://twitter.com/mustafaakin/"> Github </a></li><li><a href="https://www.linkedin.com/in/mustafaakin/"> LinkedIn </a></li><li><a href="https://github.com/mustafaakin/"> Twitter </a></li>
+      </ul>
+    </nav>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>How to Export Kubernetes Events for Observability and Alerting</h1>
+  <time datetime=2019-12-12T14:01:01Z class="post-date">Thu, Dec 12, 2019</time>
+  <blockquote>
+<p>Originally appeared on <a href="https://engineering.opsgenie.com/how-to-export-kubernetes-events-for-observability-and-alerting-a9b4a953363d">Opsgenie Engineering Blog</a></p>
+</blockquote>
+<p>In Kubernetes, there are many objects in the core APIs. One of the most overlooked object types is Events, which are reports on the objects in the API Server. Pod started, scheduled, ReplicaSet scaled are informational events, whereas unhealthy nodes, Pod sandbox errors are considered Warning events, which you may want to get alerts when they occur.</p>
+<p>Events have a high volume of activity compared to other objects in the Kubernetes. By default, events have a 1-hour life span and a separate etcd cluster is recommended to ensure scalability. Combined with the inability to search or aggregate, events on their own might not be very useful unless they are exported to external systems. Therefore, we created an open-source project, <a href="https://github.com/opsgenie/kubernetes-event-exporter">Kubernetes Event Exporter</a> which watches the events and exports to many systems such as Opsgenie, Elasticsearch, Slack or plain webhooks. We also presented this tool on <a href="https://kccncna19.sched.com/event/UaYM/exporting-kubernetes-event-objects-for-better-observability-mustafa-akin-ahmet-seker-atlassian">KubeCon North America 2019</a> and got a warm response from the community and had great feedback.</p>
+<p>When using kubectl describe to get formatted information on an object, events regarding this object is also shown. To be more specific, when you hit <strong>kubectl describe my-pod</strong>, you will probably see event messages such as <em>Created Container</em>, <em>Pulled the image, Assigned Pod to Node X.</em> You can also see warning events when your Pod has been killed, sandbox changed, has unbound volumes. There are many frequently published informational events. However, there are also some infrequent warning events you might want to be noticed.</p>
+<p>Events in Kubernetes are structured objects with the following fields:</p>
+<ul>
+<li><strong>Message</strong>: A human-readable description of the status of this operation</li>
+<li><strong>Involved Object:</strong> The object that this event is about, like Pod, Deployment, Node, etc.</li>
+<li><strong>Reason:</strong> Short, machine-understandable string, in other words: Enum</li>
+<li><strong>Source:</strong> The component reporting this event, short machine-understandable string. i.e kube-scheduler</li>
+<li><strong>Type:</strong> Currently holds only Normal &amp; Warning, but custom types can be given if desired.</li>
+<li><strong>Count:</strong> The number of times the event has occurred</li>
+</ul>
+<p>Our open-source tool has a configuration language to filter the events and route them to the various outputs. As a starting point, one can export all the events to Elasticsearch or other analytics tools to see what kind of events are thrown. Counting the events by the reason string can give information about the distribution of the events. There are many hidden data in those events that you can convert to actionable observability. For instance, in one of our development clusters, the workloads are not stable and they are causing generally warning events. In another cluster where we run more stable workloads, the events are regular pod creation, image pull events with some minor warning events. The following is the visualization of events that occurred in those 2 clusters in the 7-day period, grouped by Reason field:</p>
+<p><img src="/img/0__4gJRKbj9H0xWZ3kd.jpg" alt="A comparison of event reason distributions for a stable cluster and development cluster">
+A comparison of event reason distributions for a stable cluster and development cluster</p>
+<p>Also plotting out the events as a time-series chart can also be helpful to see trends. For instance, in our clusters, we have cluster autoscaler enabled. In the development cluster, as the workloads live only for minutes, there can be some scheduling problems due to the lack of capacity. If we plot pod creation and schedule fails on the same graph, we see that they are correlated and it has a weekly trend as the devs start working.</p>
+<p><img src="/img/0__sTUU8NJh5FYrezsd.jpg" alt="Timeseries view for over a week for finding out Pod Creation counts and Schedule Fails in the development cluster">
+Timeseries view for over a week for finding out Pod Creation counts and Schedule Fails in the development cluster</p>
+<p>After you have an idea of what types of events are thrown and decide which are important, you can try creating alerts or Slack notifications. For instance, a Warning event on kube-system namespace can create an alert on Opsgenie so that you are aware of the problems in the critical components. Our tool also fetches the labels on the involved object, so if your objects have owner information in their labels, you can directly notify them via Slack. The configuration of our tool allows creating a routing tree for filtering the events to be received in multiple outputs. With a single configuration and running instance, you can direct the events for both dumping and alerting purposes. The configuration language is slightly inspired by the Prometheus Alert manager.</p>
+<p>The first part of the configuration is about routing the events. An example configuration is as follows:</p>
+<div class="highlight"><pre class="chroma"><code class="language-yaml" data-lang="yaml"><span class="k">route</span><span class="p">:</span><span class="w">
+</span><span class="w">  </span><span class="c"># Main route</span><span class="w">
+</span><span class="w">  </span><span class="k">routes</span><span class="p">:</span><span class="w"> 
+</span><span class="w">    </span><span class="c"># This route allows dumping all events because it has no fields to match and no drop rules.</span><span class="w">
+</span><span class="w">    </span>- <span class="k">match</span><span class="p">:</span><span class="w">
+</span><span class="w">      </span>- <span class="k">receiver</span><span class="p">:</span><span class="w"> </span>dump<span class="w">
+</span><span class="w">    </span><span class="c"># This starts another route, drops all the events in *test* namespaces and Normal events </span><span class="w">
+</span><span class="w">    </span><span class="c"># for capturing critical events </span><span class="w">
+</span><span class="w">    </span>- <span class="k">drop</span><span class="p">:</span><span class="w">
+</span><span class="w">      </span>- <span class="k">namespace</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;*test*&#34;</span><span class="w">
+</span><span class="w">      </span>- <span class="k">type</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;Normal&#34;</span><span class="w">
+</span><span class="w">      </span><span class="k">match</span><span class="p">:</span><span class="w"> 
+</span><span class="w">      </span>- <span class="k">receiver</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;critical-events-queue&#34;</span><span class="w">
+</span><span class="w">    </span><span class="c"># This a final route for user messages</span><span class="w">
+</span><span class="w">    </span>- <span class="k">match</span><span class="p">:</span><span class="w">
+</span><span class="w">        </span><span class="k">kind</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;Pod|Deployment|ReplicaSet&#34;</span><span class="w">
+</span><span class="w">        </span><span class="k">labels</span><span class="p">:</span><span class="w">
+</span><span class="w">          </span><span class="k">version</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;dev&#34;</span><span class="w">    
+</span><span class="w">        </span><span class="k">receiver</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;slack&#34;</span><span class="w">    
+</span><span class="w"></span><span class="k">receivers</span><span class="p">:</span><span class="w">
+</span></code></pre></div><p>After creating your routing tree, you should also define the receivers. Each receiver has a name and can be configured with a different kind of integration. Currently, the tool supports Elasticsearch, Opsgenie, Webhooks, Slack and AWS SNS, SQS, Kinesis, with more to come in the following days. Output configurations also allow payload customization with Go templating. This allows integrating with external systems that require data to be in a certain format and saves the user from writing additional code.</p>
+<p>An example output is configured as follows:</p>
+<div class="highlight"><pre class="chroma"><code class="language-yaml" data-lang="yaml"><span class="k">receivers</span><span class="p">:</span><span class="w">
+</span><span class="w">  </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;alerts&#34;</span><span class="w">
+</span><span class="w">    </span><span class="k">opsgenie</span><span class="p">:</span><span class="w">
+</span><span class="w">      </span><span class="k">apiKey</span><span class="p">:</span><span class="w"> </span>xxx<span class="w">
+</span><span class="w">      </span><span class="k">priority</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;P3&#34;</span><span class="w">
+</span><span class="w">      </span><span class="k">message</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;Event {{ .Reason }} for {{ .InvolvedObject.Namespace }}/{{ .InvolvedObject.Name }} on K8s cluster&#34;</span><span class="w">
+</span><span class="w">      </span><span class="k">alias</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;{{ .UID }}&#34;</span><span class="w">
+</span><span class="w">      </span><span class="k">description</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;&lt;pre&gt;{{ toPrettyJson . }}&lt;/pre&gt;&#34;</span><span class="w">
+</span><span class="w">      </span><span class="k">tags</span><span class="p">:</span><span class="w">
+</span><span class="w">        </span>- <span class="s2">&#34;event&#34;</span><span class="w">
+</span><span class="w">        </span>- <span class="s2">&#34;{{ .Reason }}&#34;</span><span class="w">
+</span><span class="w">        </span>- <span class="s2">&#34;{{ .InvolvedObject.Kind }}&#34;</span><span class="w">
+</span><span class="w">        </span>- <span class="s2">&#34;{{ .InvolvedObject.Name }}&#34;</span><span class="w">
+</span></code></pre></div><p>If you would like to test the tool, you should head out to the <a href="https://github.com/opsgenie/kubernetes-event-exporter">GitHub repository</a> and see the section on deployment. The tool is configured via ConfigMap and runs as a single pod Deployment in Kubernetes. We would also love contributions from you and please have a look at the <a href="https://github.com/opsgenie/kubernetes-event-exporter/issues">open issues</a> for a starting point. We hope this tool can give you more observability on your Kubernetes clusters and you can create useful alerts to reduce the incidents and response time!</p>
+<p>We have more projects to open source soon, the biggest one is our alternative Kubernetes Dashboard!</p>
+
+</div>
+
+<h2>Comments</h2>
+<div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "mustafaakindev" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </main>
+
+    
+      
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-163369693-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+    
+  </body>
+</html>

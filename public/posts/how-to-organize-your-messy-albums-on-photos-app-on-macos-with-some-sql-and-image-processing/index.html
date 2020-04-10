@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.68.3" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>How to Organize Your Messy Albums on Photos.app on macOS with Some SQL and Image Processing &middot; Mustafa Akın</title>
+  <meta name="description" content="I love taking photos but there are too many of them and" />
+
+  
+  <link type="text/css" rel="stylesheet" href="http://mustafaakin.dev/css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="http://mustafaakin.dev/css/poole.css">
+  <link type="text/css" rel="stylesheet" href="http://mustafaakin.dev/css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="http://mustafaakin.dev/css/hyde.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
+
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/favicon.png">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href="http://mustafaakin.dev/"><h1>Mustafa Akın</h1></a>
+      <p class="lead">
+       SRE Architect @Atlassian Opsgenie, PhD Student @Bikkent University CS 
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li><a href="http://mustafaakin.dev/">Home</a> </li>
+        <li><a href="https://twitter.com/mustafaakin/"> Github </a></li><li><a href="https://www.linkedin.com/in/mustafaakin/"> LinkedIn </a></li><li><a href="https://github.com/mustafaakin/"> Twitter </a></li>
+      </ul>
+    </nav>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>How to Organize Your Messy Albums on Photos.app on macOS with Some SQL and Image Processing</h1>
+  <time datetime=2019-02-18T20:27:43Z class="post-date">Mon, Feb 18, 2019</time>
+  <p>I was once a heavy user of Google Photos on Android, but when I moved to iPhone, the Google Photos did not work as well native Photos application. Google Photos could recognize very complex queries such as  <em>VW Golf with Black Dog</em>  almost perfectly, and (a little Skynet level creepy), it used more battery and needed me to delete the actual photos from the devices, whereas Photos just handles everything gracefully, from Apple Watch to TV, it works great in the Apple ecosystem. One decision-maker downside was that, Google does not have a proper desktop application, as usual, and I hate slow Web UIs. The macOS Photos.app can even save some albums to your computer to be able to access them without internet and works very fast.</p>
+<p>After months of usage and importing all the Photos, I once got 50GB then 200GB plan and nearing the limit now, while I could get the 2TB plan, I decided that I should clean-up some photos. I imported all my digital photos since 2004 and have approximately 170 GB of Photos. In 2004, I had a 128 MB SD-Card, and now I have multiple 32GB cards when I travel. I tend to take a lot of photos, and get lazy and import all of them to Photos which makes gigantic photos. I am not a professional photographer, however I like nice pictures. To overcome my bad habit, I started taking RAW photos, and edit them with Pixelmator Pro and save them to Photos afterwards. However, the damage is done, during 2004–2016 there are lots of albums that needed to be cleaned. Many photos also makes browsing unpleasant, besides taking too much storage. Also, some of my imports are not in proper albums, hanging in the timeline view without any tag or category, which makes them lost in time. Photos GUI does not help a lot, I wanted something more.</p>
+<p>After a series of Googling, I have found out that Photos stores all the metadata in a local SQLite database, even all the photos are not in your Mac. You will find that they are in ~/Pictures/Photos Library.photoslibrary/database/ as a file named photos.db. Before getting excited, it is best to make a copy of that somewhere safe, mine was 340MB, not much. I used DataGrip by IntelliJ to explore, because there are a lot of tables and views and autocomplete helps a lot. But you can easily use the command line interface as well.</p>
+<p>I used some queries to find more information that the Apps GUI does not provide, so that I can go and manually delete some or move them to new apps. I did not try modifying the database to avoid damaging the integrity, and I am not sure if modifying it would be reflected to iCloud account. And there is currently not a useful API for Photos by Apple on MacOS SDK, so you are out of luck.</p>
+<h4 id="1-find-the-storage-cost-of-eachalbum">1. Find the storage cost of each album</h4>
+<p>For starters, lets examine some tables. RKMaster stores the information about actual Photo or Video, such as original filename, dimensions. RKAlbum stores information about Albums, such as name, creation date, parent folder, default sort key etc. The interesting ones are RKVersion and RKAlbumVersion.  I am not aware of any versioning on images. And, RKMaster table has slighlty more records than RKVersionn, and there are 138 entries that do not match, which all are RAW Photos. Unfortunately, there is not proper documentation of it, so I am going by educated guesses and the tables have proper column names that matches (modelId is like an auto-increment key in every table). The following query gives how much the albums takes space and how many items are in the albums:</p>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="k">select</span> <span class="n">RKAlbum</span><span class="p">.</span><span class="n">name</span><span class="p">,</span>  
+       <span class="n">_count_</span><span class="p">(</span><span class="err">\</span><span class="o">*</span><span class="p">)</span> <span class="k">as</span> <span class="n">total</span><span class="p">,</span>  
+       <span class="n">_sum_</span><span class="p">(</span><span class="n">RKMaster</span><span class="p">.</span><span class="n">fileSize</span><span class="p">)</span> <span class="o">/</span> <span class="mi">1024</span> <span class="o">/</span> <span class="mi">1024</span> <span class="k">as</span> <span class="n">megabytes</span>  
+<span class="k">FROM</span> <span class="n">RKAlbum</span><span class="p">,</span>  
+     <span class="n">RKAlbumVersion</span><span class="p">,</span>  
+     <span class="n">RKVersion</span><span class="p">,</span>  
+     <span class="n">RKMaster</span>  
+<span class="k">WHERE</span> <span class="n">RKAlbum</span><span class="p">.</span><span class="n">modelId</span> <span class="o">=</span> <span class="n">RKAlbumVersion</span><span class="p">.</span><span class="n">albumId</span>  
+  <span class="k">AND</span> <span class="n">RKVersion</span><span class="p">.</span><span class="n">modelId</span> <span class="o">=</span> <span class="n">RKAlbumVersion</span><span class="p">.</span><span class="n">versionId</span>  
+  <span class="k">AND</span> <span class="n">RKMaster</span><span class="p">.</span><span class="n">modelId</span> <span class="o">=</span> <span class="n">RKVersion</span><span class="p">.</span><span class="n">masterId</span>  
+<span class="k">GROUP</span> <span class="k">BY</span> <span class="mi">1</span>  
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="n">megabytes</span> <span class="k">DESC</span>
+</code></pre></div><h4 id="2-find-out-album-sizes-seperated-by-videos-andphotos">2. Find out album sizes, seperated by Videos and Photos</h4>
+<p>The above query is nice, but when you have a baby niece, you have a lot of videos, that you cannot delete, because she is damn cute in each of them. So, I want to find which albums have lots of photos in them and taking space, so I can reduce the clutter in them. As Photos are stationary, they do not have durations, right? So adding a simple case for RKMaster.duration can separate videos from photos, and now I see my niece’s videos takes %15 of my storage.</p>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="k">select</span> <span class="n">RKAlbum</span><span class="p">.</span><span class="n">name</span><span class="p">,</span>  
+       <span class="p">(</span><span class="k">CASE</span>  
+          <span class="k">WHEN</span> <span class="p">(</span><span class="n">RKMaster</span><span class="p">.</span><span class="n">duration</span> <span class="k">IS</span> <span class="k">NULL</span> <span class="k">OR</span> <span class="n">RKMaster</span><span class="p">.</span><span class="n">duration</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="k">THEN</span> <span class="s1">&#39;Photo&#39;</span>  
+          <span class="k">ELSE</span> <span class="s1">&#39;Video&#39;</span> <span class="k">END</span><span class="p">)</span>                   <span class="k">AS</span> <span class="n">kind</span><span class="p">,</span>  
+       <span class="n">_count_</span><span class="p">(</span><span class="err">\</span><span class="o">*</span><span class="p">)</span>                               <span class="k">as</span> <span class="n">total</span><span class="p">,</span>  
+       <span class="n">_sum_</span><span class="p">(</span><span class="n">RKMaster</span><span class="p">.</span><span class="n">fileSize</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span> <span class="err">\</span><span class="o">*</span> <span class="mi">1024</span><span class="p">)</span> <span class="k">as</span> <span class="n">megabytes</span>  
+<span class="k">FROM</span> <span class="n">RKAlbum</span><span class="p">,</span>  
+     <span class="n">RKAlbumVersion</span><span class="p">,</span>  
+     <span class="n">RKVersion</span><span class="p">,</span>  
+     <span class="n">RKMaster</span>  
+<span class="k">WHERE</span> <span class="n">RKAlbum</span><span class="p">.</span><span class="n">modelId</span> <span class="o">=</span> <span class="n">RKAlbumVersion</span><span class="p">.</span><span class="n">albumId</span>  
+  <span class="k">AND</span> <span class="n">RKVersion</span><span class="p">.</span><span class="n">modelId</span> <span class="o">=</span> <span class="n">RKAlbumVersion</span><span class="p">.</span><span class="n">versionId</span>  
+  <span class="k">AND</span> <span class="n">RKMaster</span><span class="p">.</span><span class="n">modelId</span> <span class="o">=</span> <span class="n">RKVersion</span><span class="p">.</span><span class="n">masterId</span>  
+<span class="k">GROUP</span> <span class="k">BY</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span>  
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="n">megabytes</span> <span class="k">DESC</span>
+</code></pre></div><h4 id="3-find-out-some-collection-of-photos-that-can-bealbums">3. Find out some collection of photos that can be albums</h4>
+<p>When photos are in album, it is easier to navigate to them, rather than remembering the exact dates. We will first find out the photos that are not in any albums, and determine whether there exists photo clusters in some time ranges. If you take worst case, the longest time range such as 1970–2018, it would not be a good identifier. So my main is to find clusters of Photos in the time-space without any albums. I can also make use of the EXIF info, so that we can filter out some camera models to ensure only my photos ends up in albums.</p>
+<p>After finding out the photos, we will also make use of the Smart Album feature, where you can specify some criteria and virtual albums are created automatically. One downside is, smart albums are not supported in iOS, so after being satisfied with some criteria, I create actual albums with those Photos.</p>
+<p>You can probably have some fun with window functions as well, but as a starter, I just want to group by them using the date taken. The odd thing is that the imageDate field in RKMaster timestamp does not look like a standard timestamp. After trying some scaling, I give up and try Google and get the answer in 10 secs: They are adjusted 31 years according to <a href="https://apple.stackexchange.com/questions/288318/what-format-does-the-apple-notes-sqlite-db-date-use">this answer on Stack Exchange</a> which is unusual, but yeah in short; it is taking 2001 epoch instead of 1970.</p>
+<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="n">_strftime_</span><span class="p">(</span><span class="s1">&#39;%Y-%m-%d&#39;</span><span class="p">,</span> <span class="n">_datetime_</span><span class="p">(</span><span class="n">imageDate</span><span class="p">,</span> <span class="s1">&#39;unixepoch&#39;</span><span class="p">,</span> <span class="s1">&#39;31 years&#39;</span><span class="p">))</span> <span class="k">AS</span> <span class="n">dt</span><span class="p">,</span> <span class="n">_count_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  
+<span class="k">FROM</span> <span class="n">RKMaster</span>  
+<span class="k">WHERE</span> <span class="n">RKMaster</span><span class="p">.</span><span class="n">modelId</span> <span class="k">NOT</span> <span class="k">IN</span> <span class="p">(</span>  
+        <span class="k">select</span> <span class="n">RKMaster</span><span class="p">.</span><span class="n">modelId</span>  
+         <span class="k">from</span> <span class="n">RKAlbumVersion</span><span class="p">,</span>  
+              <span class="n">RKVersion</span><span class="p">,</span>  
+              <span class="n">RKMaster</span><span class="p">,</span>  
+              <span class="n">RKAlbum</span>  
+         <span class="k">where</span> <span class="n">RKAlbumVersion</span><span class="p">.</span><span class="n">versionId</span> <span class="o">=</span> <span class="n">RKVersion</span><span class="p">.</span><span class="n">modelId</span>  
+           <span class="k">AND</span> <span class="n">RKMaster</span><span class="p">.</span><span class="n">modelId</span> <span class="o">=</span> <span class="n">RKVersion</span><span class="p">.</span><span class="n">masterId</span>  
+           <span class="k">AND</span> <span class="n">RKAlbumVersion</span><span class="p">.</span><span class="n">albumId</span> <span class="o">=</span> <span class="n">RKAlbum</span><span class="p">.</span><span class="n">modelId</span>  
+           <span class="k">AND</span> <span class="n">RKAlbumVersion</span><span class="p">.</span><span class="n">versionId</span> <span class="o">=</span> <span class="n">RKVersion</span><span class="p">.</span><span class="n">modelId</span><span class="p">)</span>  
+<span class="k">GROUP</span> <span class="k">BY</span> <span class="mi">1</span>  
+<span class="k">HAVING</span> <span class="n">_count_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">30</span>  
+<span class="k">ORDER</span> <span class="k">BY</span> <span class="mi">1</span>
+</code></pre></div><p>The above query will list you the number of photos that are not in any album and at least 30 photos from that day. (surely there can be a better SQL for that ¯\_(ツ)_/¯). It will give you a result like following:</p>
+<pre><code>2018-03-24 143  
+2018-09-01 52  
+2018-09-23 52  
+2018-09-24 58  
+2018-09-27 52  
+2018-09-30 66  
+2018-10-01 45  
+2018-10-10 31  
+2018-10-13 41  
+2018-10-29 31  
+2019-01-03 32
+</code></pre><p>And as you see, there are clusters of photos in those dates, that are not in any albums. It is very likely that I have a potential album between 23–24 September 2018. By using the Smart Album feature of photos, you can create a dynamic album with any conditions you like. And the above input will be helpful for me to view better and create more meaningful albums.</p>
+<p><img src="/img/1__Rf9dauRj7KWpSWeWipFPIg.png" alt="Smart Album Creation options with many filters available. You can also select People, Camera & Lens Model, Focal Length, ISO but they might not be helpful as these one.">
+Smart Album Creation options with many filters available. You can also select People, Camera &amp; Lens Model, Focal Length, ISO but they might not be helpful as these one.</p>
+<h4 id="4-bonus-find-out-blurry-pictures-inalbums">4. BONUS: Find out blurry pictures in albums</h4>
+<p>Okay, this is beyond just SQL. But, I will show you what can you do. Even though you tell Photos to upload all the Photos to preserve space (as a poor guy with 256GB disk), the thumbnails of all the photos are stored in the disk and has around 100–200kb, around 1 megapixels resolution, which can be enough for most image processing applications. Maybe you can deep learn something, such as you were always in the left of your mother in pictures, I don’t know.</p>
+<p>The thumbnails are in resources/proxies/derivatives/ folder in the Photos library folder. You will find out there are folders wih hexadecimal names, which are actually translation of model ids of the RKMaster to hex. There are two pictures inside, one is a mini and the other one is a thumbnail. Mini is very small, we will make use of the thumbnails. When I started writing this tutorial, I was on High Sierra, and when I updated it to Mojave I could not issue ls command in that folder, because I denied Photos access to iTerm. But you can still browse them through Finder. And the following Python script will ask for permission through a simple form.</p>
+<p><img src="/img/1__65KnPjtjaJiJg3ZdJ3BlMQ.png" alt="This does not help anyone, Apple. I know the pictures are there and hex numbers are not magic.">
+This does not help anyone, Apple. I know the pictures are there and hex numbers are not magic.</p>
+<p>I want to give an approximate blur index to each photo, so I can use that information in the SQLite, to assess the qualities of the photos and albums. To calculate how much of a blur a photo has, I used OpenCV, the most popular computer vision libraries, which can do find out the score in almost one line, by using a simple convolution (of course you can do that yourself, but I used <a href="https://www.pyimagesearch.com/2015/09/07/blur-detection-with-opencv/">this nice blog</a> as a simple example) and come up with the following snippet:</p>
+<p>I’m not going into the details of how the focus/blurness score is calculated (It’s not like I can anyways, I forgot my Image Processing course pretty fast), but in short: lower the score, more blur, higher the score, better. It turns out that this score can easily summarize my albums blurrines.</p>
+<ul>
+<li>My niece: Absolute blur, high deviation. I have albums for her birthdays and I saw that with each birthday his blurines drops as she can pose nicely, but it reduces when she reached the toddler age.</li>
+<li>Wedding photos: Photo-session album is sharp as hell with no deviation, but the regular photos are almost garbage.</li>
+<li>Travel Photos: Depends on the place. The country side is boring, but is sharp as hell but the seaside albums are blurry. The European countries is also sharp but the Niagara Falls &amp; NY has blur, as most shots have motion in them.</li>
+<li>Old Photos: As my cameras was not good in ’07, the photos are not great either. The old albums have significantly higher blur.</li>
+<li>Instagram Photos: Well, they are the sharpest one in my album after my document screenshots, so you can say that I value what I post on my social media.</li>
+</ul>
+<h4 id="things-you-could-dofurther">Things you could do further!</h4>
+<p>For some of them to be practical, they would require write access, but you can also use iOS SDKs if you really need!</p>
+<ul>
+<li>Find identical photos (probably taken sequentially in a short time) and keep the most beautiful one</li>
+<li>Find if you have been to same place over years.</li>
+<li>Add more photos to already existing albums if you forgot to do so</li>
+<li>Remove photos less than specific resolution</li>
+<li>Find out most co-existing people in your photos and see how it changed with time</li>
+<li>Split large albums that span to days/months to smaller albums</li>
+<li>Find out how much storage each person is taking in your albums</li>
+</ul>
+<h3 id="conclusion">Conclusion</h3>
+<p>While the SQL is cool enough, it does not allow you to have write access to iCloud. The current PhotoKit on MacOS only allows read-only access. I hope there was an API, so I could do some of the stuff programatically, especially removing the bad quality Photos automatically. My long-term plan is to learn some iOS programming and do these kind of analysis in the app by requesting metadata and thumbnails and, maybe even work with some MLKit magic to cluster my photos.</p>
+<p>Nevertheless, my current findings, although requiring manual labor, gave some valuable information to me and hope it can be useful to some one as well. And I’m reaching the cap of my 200GB plan and I hope I can clean my albums with those methods, because 2TB is too expensive.</p>
+
+</div>
+
+
+    </main>
+
+    
+      
+    
+  </body>
+</html>
