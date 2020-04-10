@@ -11,6 +11,11 @@
   {{ if .IsHome -}}
   <title>{{ .Site.Title }}</title>
   {{- else -}}
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:description" content="{{ .Summary }}" />
+  <meta name="twitter:title" content="{{ .Title }} " />
+  <meta name="twitter:site" content="@mustafaakin" />
+  <meta name="twitter:creator" content="@mustafaakin" />
   <title>{{ .Title }} &middot; {{ .Site.Title }}</title>
   {{- end }}
   <meta name="description" content="{{if .IsHome}}{{ $.Site.Params.description }}{{else}}{{.Description}}{{end}}" />
