@@ -1,4 +1,5 @@
-baseURL = "https://mustafaakin.dev/"
+baseURL = ""
+relativeurls = true
 languageCode = "en-us"
 title = "Mustafa Akın"
 disqusShortname = "mustafaakindev"

@@ -12,16 +12,15 @@
   <meta name="description" content="" />
 
   
-  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/print.css" media="print">
-  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/poole.css">
-  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/syntax.css">
-  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/hyde.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
-
+  <link type="text/css" rel="stylesheet" href="css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="css/poole.css">
+  <link type="text/css" rel="stylesheet" href="css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="css/hyde.css">
+  
 
   
-  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
-  <link rel="shortcut icon" href="/favicon.png">
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="../../apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="../../favicon.png">
 
   
   
@@ -31,7 +30,7 @@
   <aside class="sidebar">
   <div class="container sidebar-sticky">
     <div class="sidebar-about">
-      <a href="https://mustafaakin.dev/"><h1>Mustafa Akın</h1></a>
+      <a href=""><h1>Mustafa Akın</h1></a>
       <p class="lead">
        SRE Architect @Atlassian Opsgenie, PhD Student @Bikkent University CS 
       </p>
@@ -39,7 +38,7 @@
 
     <nav>
       <ul class="sidebar-nav">
-        <li><a href="https://mustafaakin.dev/">Home</a> </li>
+        <li><a href="">Home</a> </li>
         <li><a href="https://twitter.com/mustafaakin/"> Github </a></li><li><a href="https://www.linkedin.com/in/mustafaakin/"> LinkedIn </a></li><li><a href="https://github.com/mustafaakin/"> Twitter </a></li>
       </ul>
     </nav>
@@ -58,7 +57,7 @@
 <p>As you might be aware, AWS Lambda announced Go support in January. Unlike other languages, it does not require a specific function signature to be exported; instead, it communicates with your Go function using net/rpc package. The main advantage is, your Go code is compiled into a binary in your local computer (with GOOS=linux GOARCH=amd64 target), and they can start very fast as they also do not need any dynamic loading and JIT. So, in theory, as long as you implement the RPC format, you can write it in any language. The downside is that net/rpc uses Gob format for exchanging messages, which is not popular in other languages and therefore not implemented. So, we decided to combine Go for RPC, and Java for actual computation and decieded to glue them with Graal.</p>
 <h3 id="the-code">The code</h3>
 <p>Go programs can be compiled as shared libraries, and they can be efficiently loaded with JNI in Java. Luckily, Graal also supports JNI to some extent, enough for our use case. There are no code changes required in Java part, except the Go code cannot call Java with non-primitive types such as string or byte arrays. So, our entry point is from Java, and it calls Go code to set up the RPC handler and communicates with Go channels! The code is simple to understand, but making it work was an enlightening experience which made us more familiar with JNI, Graal, and Cgo.</p>
-<p><img src="/img/0__EO090B3qfK__U34J2.jpg" alt="Illustration of how the compilation, linking and communication with AWS Lambda works"></p>
+<p><img src="../../img/0__EO090B3qfK__U34J2.jpg" alt="Illustration of how the compilation, linking and communication with AWS Lambda works"></p>
 <p>The native calls we are making from Java to Go is as follows:</p>
 <ul>
 <li><strong>void start():</strong> Signals the Go to start the RPC communication with AWS. Each invocation request first hits Go handler, and it notifies the Java using the below functions.</li>
@@ -145,12 +144,12 @@ adding: myentrypointjava <span class="o">(</span>deflated 67%<span class="o">)</
 </code></pre></div><p>We have used a custom Docker image with OpenJDK 8, Go 1.10.2 and GraalVM 1.0 RC1. You also need zlib development files and GCC. As you can see, the lambda.go file is compiled as c-shared with Go compiler. After that, the bundled Fat JAR file is passed to native-image, which takes a considerable amount of time (33.8 seconds) to determine the used classes, analyze the flow and optimize &amp; inline as a regular compiler does. In the end, it generates a single executable, only depending on system libraries such as libc, libz, libpthread and libcrypt. You still need to supply the shared library produced by Go, as it is loaded dynamically (with System.loadLibrary() call), not linked statically.</p>
 <p>After uploading the package to AWS Lambda with even a relatively small memory configuration, it generally works under 10ms and sometimes even sub-milliseconds. You can see there are no more cold starts and the function is available immediately upon container initialization.</p>
 <p>An example invocation log from Cloudwatch is as follows:</p>
-<p><img src="/img/0__O7NTtO8lqlYkcZs9.jpg" alt="Yes, A sub-millisecond cold start (first invocation) with only consuming 38 MB with external dependencies, even in the slowest Lambda settings."></p>
+<p><img src="../../img/0__O7NTtO8lqlYkcZs9.jpg" alt="Yes, A sub-millisecond cold start (first invocation) with only consuming 38 MB with external dependencies, even in the slowest Lambda settings."></p>
 <p>The code in the example is just generating small random vectors and applying k-means clustering algorithm, to make sure we are doing the somewhat meaningful computation in Java part (with the help of Apache Commons Math) and we can adequately benchmark it and compare it with regular Lambda. <a href="https://gist.github.com/mustafaakin/71e4494508311f7764e59b16e9dd3b8e">The code is uploaded to Github,</a> if you are interested and want to try on your own.</p>
 <h3 id="testing--benchmarks">Testing &amp; Benchmarks</h3>
 <p>What good of AOT-compiled native binaries versus JIT Java classes if you do not indent to compare the performance? We also have the regular Java version of the above function as a Java Lambda. The function is parameterized, so that we can generate enough computational power need to amortize the external costs such as I/O, similar to one benchmark in one of our <a href="https://engineering.opsgenie.com/how-does-proportional-cpu-allocation-work-with-aws-lambda-41cd44da3cac">old blog posts</a> trying to explain AWS CPU performance for various memory settings. Always remember that, for nice benchmarks, you need repetitions and enough samples so that you can remove outliers and see the actual patterns. Also, if you are comparing raw CPU performance or multi-threads, you need to make sure that the overhead of external factors such as initialization and I/O should be minimal and your functions should have a consistent runtime for same input sizes. Otherwise, you will be benchmarking external factors which will benefit no one and confuse many people.</p>
 <p>In this benchmark, we have used Apache Commons Math to generate a uniformly distributed N number of d-dimensional points and apply k-means clustering algorithm, which makes no sense but it is a CPU and Memory burden and does not depend on any I/O, thus a good candidate for benchmarking in our case. The wiring of the Go code and Java is established as above, and the inputs are passed as strings. As GraalVM does not support reflection, the parsing of the input in Java is done via org.json package; we construct the POJOs by hand, which would not be desirable for a massive project where you have much input and outputs already defined and uses Jackson. We have compared both Java and Go+Graal version with various memory settings with a large enough input to make overheads negligible. Although the Graal version has no cold starts, it turns out it is slower and consumes more memory.</p>
-<p><img src="/img/1__g9SNrYT2GSlC8ba__WroaVA.png" alt="Benchmark results for K-Means calculation with Plain Java and GraalVM+Golang in AWS Lambda with various memory settings"></p>
+<p><img src="../../img/1__g9SNrYT2GSlC8ba__WroaVA.png" alt="Benchmark results for K-Means calculation with Plain Java and GraalVM+Golang in AWS Lambda with various memory settings"></p>
 <p>Graal + Go version was always slower, but the runtime duration was more consistent. It suffered no cold start, but it also consumed more memory. Plain Java version used 50–60 MB of memory but the Graal version used additional 110–290 MB of memory.</p>
 <p>Naturally, we blamed Go binding and AWS Lambda, and run the tests locally with plain Java and native-image with no Go code. It turns out it is also slower and used more memory in our local machines as well. AoT compiler of GraalVM might not be suitable for some use cases. Therefore, we might need to look at the generated assembly code to understand what it has compiled to and why it is slower. But since the library we used is complicated, and understanding machine code and comparing it with JVM bytecode is no easy task, so we tried to benchmark a simple job, which calculates sin(x) continuously. To make sure the compiler did not optimize out sin(x), we updated x continually with the result of sin(x) and saw the results are same for both Java and Graal. In this simple task, native-image created by Graal was 2 times faster, for 10 million sin(x) calculations.</p>
 <p>As most people use Lambda to communicate with external systems, such as uploading a file, processing an authentication flow, or doing administrative tasks, they might utilize the CPU differently and therefore have different performance output depending on the number of IO performed. We intended to do a test consisting of I/O, such as HTTP requests to AWS Services, but GraalVM <a href="https://github.com/oracle/graal/issues/390">does not support SSL yet</a>. If you are making an SSL connection for the first time, it takes considerable time because it loads many classes and JIT is not kicked in yet. So it would be good to see how the SSL can be improved with GraalVM.</p>

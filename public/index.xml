@@ -2,30 +2,30 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Mustafa Akın</title>
-    <link>https://mustafaakin.dev/</link>
+    <link>/</link>
     <description>Recent content on Mustafa Akın</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Fri, 10 Apr 2020 00:00:00 +0000</lastBuildDate>
     
-	<atom:link href="https://mustafaakin.dev/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
       <title>I have returned to Linux and i3wm, and hopefully will be writing more posts!</title>
-      <link>https://mustafaakin.dev/posts/2020-04-10-i-have-returned-to-linux-and-i3wm/</link>
+      <link>/posts/2020-04-10-i-have-returned-to-linux-and-i3wm/</link>
       <pubDate>Fri, 10 Apr 2020 00:00:00 +0000</pubDate>
       
-      <guid>https://mustafaakin.dev/posts/2020-04-10-i-have-returned-to-linux-and-i3wm/</guid>
+      <guid>/posts/2020-04-10-i-have-returned-to-linux-and-i3wm/</guid>
       <description>I started using macOS almost five years ago. It has been a great journey so far. Its retina screen, font rendering, portability, the look and feel of the applications are great. However, lately, it has been in a regression in terms of speed and stability. The increasing number of errors, fan going of randomly, software force closing, touch bar stopping responding and many more things have made my love fade away for over a year, and I hate the new keyboard.</description>
     </item>
     
     <item>
       <title>How to Export Kubernetes Events for Observability and Alerting</title>
-      <link>https://mustafaakin.dev/posts/2019-12-12-how-to-export-kubernetes-events-for-observability-and-alerting/</link>
+      <link>/posts/2019-12-12-how-to-export-kubernetes-events-for-observability-and-alerting/</link>
       <pubDate>Thu, 12 Dec 2019 14:01:01 +0000</pubDate>
       
-      <guid>https://mustafaakin.dev/posts/2019-12-12-how-to-export-kubernetes-events-for-observability-and-alerting/</guid>
+      <guid>/posts/2019-12-12-how-to-export-kubernetes-events-for-observability-and-alerting/</guid>
       <description>Originally appeared on Opsgenie Engineering Blog
  In Kubernetes, there are many objects in the core APIs. One of the most overlooked object types is Events, which are reports on the objects in the API Server. Pod started, scheduled, ReplicaSet scaled are informational events, whereas unhealthy nodes, Pod sandbox errors are considered Warning events, which you may want to get alerts when they occur.
 Events have a high volume of activity compared to other objects in the Kubernetes.</description>
@@ -33,126 +33,126 @@ Events have a high volume of activity compared to other objects in the Kubernete
     
     <item>
       <title>How to Organize Your Messy Albums on Photos.app on macOS with Some SQL and Image Processing</title>
-      <link>https://mustafaakin.dev/posts/2019-02-18-how-to-organize-your-messy-albums-on-photos-app-on-macos-with-some-sql-and-image-processing/</link>
+      <link>/posts/2019-02-18-how-to-organize-your-messy-albums-on-photos-app-on-macos-with-some-sql-and-image-processing/</link>
       <pubDate>Mon, 18 Feb 2019 20:27:43 +0000</pubDate>
       
-      <guid>https://mustafaakin.dev/posts/2019-02-18-how-to-organize-your-messy-albums-on-photos-app-on-macos-with-some-sql-and-image-processing/</guid>
+      <guid>/posts/2019-02-18-how-to-organize-your-messy-albums-on-photos-app-on-macos-with-some-sql-and-image-processing/</guid>
       <description>I was once a heavy user of Google Photos on Android, but when I moved to iPhone, the Google Photos did not work as well native Photos application. Google Photos could recognize very complex queries such as VW Golf with Black Dog almost perfectly, and (a little Skynet level creepy), it used more battery and needed me to delete the actual photos from the devices, whereas Photos just handles everything gracefully, from Apple Watch to TV, it works great in the Apple ecosystem.</description>
     </item>
     
     <item>
       <title>Using GraalVM to run Native Java in AWS Lambda with Golang</title>
-      <link>https://mustafaakin.dev/posts/2018-06-11-using-graalvm-to-run-native-java-in-aws-lambda-with-golang/</link>
+      <link>/posts/2018-06-11-using-graalvm-to-run-native-java-in-aws-lambda-with-golang/</link>
       <pubDate>Mon, 11 Jun 2018 13:32:49 +0000</pubDate>
       
-      <guid>https://mustafaakin.dev/posts/2018-06-11-using-graalvm-to-run-native-java-in-aws-lambda-with-golang/</guid>
+      <guid>/posts/2018-06-11-using-graalvm-to-run-native-java-in-aws-lambda-with-golang/</guid>
       <description>Originally appeared on Opsgenie Engineering Blog
  If you are deploying serverless applications in AWS Lambda and using Java, you are well aware of cold start problems. Cold start happens because of the way the Java Virtual Machine works, it kicks in JIT (Just-in-time), and it needs to “warm-up” like a car from the 80s. AWS Lambda caches containers for you, so when idle, it is paused and brought back online immediately as soon as a request arrives.</description>
     </item>
     
     <item>
       <title>State of Cloud Native CI/CD Tools for Kubernetes</title>
-      <link>https://mustafaakin.dev/posts/2018-05-22-state-of-cloud-native-ci-cd-tools-for-kubernetes/</link>
+      <link>/posts/2018-05-22-state-of-cloud-native-ci-cd-tools-for-kubernetes/</link>
       <pubDate>Tue, 22 May 2018 13:03:29 +0000</pubDate>
       
-      <guid>https://mustafaakin.dev/posts/2018-05-22-state-of-cloud-native-ci-cd-tools-for-kubernetes/</guid>
+      <guid>/posts/2018-05-22-state-of-cloud-native-ci-cd-tools-for-kubernetes/</guid>
       <description>Originally appeared on Opsgenie Engineering Blog
  Cloud Native is a new approach to build and run applications that can leverage the cloud computing delivery model. The objective is to improve speed and stability by optimizing the pipeline by leveraging Cloud Native model at each step, from coding to production, by making use of tools, such as containers and orchestrators, combined with additional tooling. As Cloud Native environments get more and more attraction, the tooling around these environments continue to evolve to fit the various needs.</description>
     </item>
     
     <item>
       <title>Previewing Elasticsearch 6.3 SQL Feature</title>
-      <link>https://mustafaakin.dev/posts/2018-04-30-previewing-elasticsearch-6-3-sql-feature/</link>
+      <link>/posts/2018-04-30-previewing-elasticsearch-6-3-sql-feature/</link>
       <pubDate>Mon, 30 Apr 2018 20:27:19 +0000</pubDate>
       
-      <guid>https://mustafaakin.dev/posts/2018-04-30-previewing-elasticsearch-6-3-sql-feature/</guid>
+      <guid>/posts/2018-04-30-previewing-elasticsearch-6-3-sql-feature/</guid>
       <description>Although the decision to include X-Pack sparked some confusion and disgruntle in some people due to having non Apache licensed code being present in the repo and the distrubitions; they are easily removable if any of them is a concern to you.
 SQL support was announced in ElasticON and there is a comprehensive presentation by Costin Leau. I was pretty excited about the support, because we use Elasticsearch for storing metrics and logs and it does the agggregations pretty fast.</description>
     </item>
     
     <item>
       <title>Advanced Kubernetes Objects You Need to Know</title>
-      <link>https://mustafaakin.dev/posts/2018-04-03-advanced-kubernetes-objects-you-need-to-know/</link>
+      <link>/posts/2018-04-03-advanced-kubernetes-objects-you-need-to-know/</link>
       <pubDate>Tue, 03 Apr 2018 14:31:01 +0000</pubDate>
       
-      <guid>https://mustafaakin.dev/posts/2018-04-03-advanced-kubernetes-objects-you-need-to-know/</guid>
+      <guid>/posts/2018-04-03-advanced-kubernetes-objects-you-need-to-know/</guid>
       <description>Originally appeared on Opsgenie Engineering Blog
  Kubernetes adoption is increasing each day. People are transforming both development and production environments to container-based deployments, and they are making use of Kubernetes to handle the operations more elegantly. Ability to do one-click zero downtime rolling deployment updates was a dream or required too many interventions by an operator or a custom in-house applications where they were heavily dependent on the specific platforms.</description>
     </item>
     
     <item>
       <title>Analyzing AWS VPC Flow Logs using Apache Parquet Files and Amazon Athena</title>
-      <link>https://mustafaakin.dev/posts/2018-02-27-analyzing-aws-vpc-flow-logs-using-apache-parquet-files-and-amazon-athena/</link>
+      <link>/posts/2018-02-27-analyzing-aws-vpc-flow-logs-using-apache-parquet-files-and-amazon-athena/</link>
       <pubDate>Tue, 27 Feb 2018 15:01:01 +0000</pubDate>
       
-      <guid>https://mustafaakin.dev/posts/2018-02-27-analyzing-aws-vpc-flow-logs-using-apache-parquet-files-and-amazon-athena/</guid>
+      <guid>/posts/2018-02-27-analyzing-aws-vpc-flow-logs-using-apache-parquet-files-and-amazon-athena/</guid>
       <description>Originally appeared on Opsgenie Engineering Blog
  Network security is an essential topic for companies, as a compromised network is a direct threat to both users and the applications. The easiest way to maintain security is just blocking the unauthorized activity or only allowing the predetermined traffic. For instance, if you have an Elasticsearch cluster, there is no need to open ports other than 9200 and 9300 to your applications.</description>
     </item>
     
     <item>
       <title>How does proportional CPU allocation work with AWS Lambda?</title>
-      <link>https://mustafaakin.dev/posts/2018-01-25-how-does-proportional-cpu-allocation-work-with-aws-lambda/</link>
+      <link>/posts/2018-01-25-how-does-proportional-cpu-allocation-work-with-aws-lambda/</link>
       <pubDate>Thu, 25 Jan 2018 14:04:45 +0000</pubDate>
       
-      <guid>https://mustafaakin.dev/posts/2018-01-25-how-does-proportional-cpu-allocation-work-with-aws-lambda/</guid>
+      <guid>/posts/2018-01-25-how-does-proportional-cpu-allocation-work-with-aws-lambda/</guid>
       <description>Originally appeared on Opsgenie Engineering Blog
  We have been using AWS Lambda for over two years at OpsGenie. Our primary programming language for our Lambda functions is Java. Although Java tends to use more memory compared to other languages such as Node.js and Python, we still allocate more memory than we need for our functions. There are two primary reasons. Sometimes depending on the traffic, there can be unexpected spikes in usage.</description>
     </item>
     
     <item>
       <title>Flink Streaming SQL Example</title>
-      <link>https://mustafaakin.dev/posts/2017-07-02-flink-streaming-sql-example/</link>
+      <link>/posts/2017-07-02-flink-streaming-sql-example/</link>
       <pubDate>Sun, 02 Jul 2017 00:00:00 +0000</pubDate>
       
-      <guid>https://mustafaakin.dev/posts/2017-07-02-flink-streaming-sql-example/</guid>
+      <guid>/posts/2017-07-02-flink-streaming-sql-example/</guid>
       <description>Apache Flink has hit version 1.3 lately and the SQL support has been extended. You can find what is supported from the docs. In this blog post, I will be giving a small example for using Streming SQL a Tumbling Window.
 Consider you are streaming room temperatures that are being read from many sensors. You want to find the average tempetarute in windows of 10 seconds and act upon it. You want to do it in SQL.</description>
     </item>
     
     <item>
       <title>Writing my own init with Go - Part 3, Packaging/Configs</title>
-      <link>https://mustafaakin.dev/posts/2016-02-12-packaging-myinit-and-configs/</link>
+      <link>/posts/2016-02-12-packaging-myinit-and-configs/</link>
       <pubDate>Fri, 12 Feb 2016 00:00:00 +0000</pubDate>
       
-      <guid>https://mustafaakin.dev/posts/2016-02-12-packaging-myinit-and-configs/</guid>
+      <guid>/posts/2016-02-12-packaging-myinit-and-configs/</guid>
       <description>When this post gained much traction in HackerNews and r/golang, I was both suprised and happy. The general interest made me more motivated to do more and write more. And also some good discussions happend on HackerNews thread that was &amp;amp; will be helpful to me. I decided to package myinit in Go, and rename it to gonit Contributions and ideas are welcome through email and in the issues of the GitHub repo.</description>
     </item>
     
     <item>
       <title>Writing my own init with Go - Part 2</title>
-      <link>https://mustafaakin.dev/posts/2016-02-09-forking-process-in-myinit-go/</link>
+      <link>/posts/2016-02-09-forking-process-in-myinit-go/</link>
       <pubDate>Tue, 09 Feb 2016 00:00:00 +0000</pubDate>
       
-      <guid>https://mustafaakin.dev/posts/2016-02-09-forking-process-in-myinit-go/</guid>
+      <guid>/posts/2016-02-09-forking-process-in-myinit-go/</guid>
       <description>I am working on myinit.go. Init process is no good if it cannot spawn other processes. I will use the other processes for critical functionality, i.e getting an IP address for future interactivity over SSH or maybe HTTP, or possibly Web Sockets. Because, why not?
 Anyways, I modified myinit.go to following and put it in the /init folder to have a nicer structure. It basically spawns a new process, and prints it output.</description>
     </item>
     
     <item>
       <title>Writing my own init with Go - Part 1</title>
-      <link>https://mustafaakin.dev/posts/2016-02-08-writing-my-own-init-with-go/</link>
+      <link>/posts/2016-02-08-writing-my-own-init-with-go/</link>
       <pubDate>Mon, 08 Feb 2016 00:00:00 +0000</pubDate>
       
-      <guid>https://mustafaakin.dev/posts/2016-02-08-writing-my-own-init-with-go/</guid>
+      <guid>/posts/2016-02-08-writing-my-own-init-with-go/</guid>
       <description>You may be wondering why would someone need to do that. I just want to experiment with Linux and build stuff with Go, so this is a nice option. I also found Linux distros to be completely confusing. So many files, a lot of stuff going on, weird and different type of config files of everything in system. Also, I hate my network-manager service in Ubuntu that it cannot reflect the changes in /etc/network/interfaces without a damn reboot.</description>
     </item>
     
     <item>
       <title>Overlay Network Performance of Docker</title>
-      <link>https://mustafaakin.dev/posts/2015-12-05-docker-overlay-performance/</link>
+      <link>/posts/2015-12-05-docker-overlay-performance/</link>
       <pubDate>Sat, 05 Dec 2015 00:00:00 +0000</pubDate>
       
-      <guid>https://mustafaakin.dev/posts/2015-12-05-docker-overlay-performance/</guid>
+      <guid>/posts/2015-12-05-docker-overlay-performance/</guid>
       <description>Since Docker 1.9, the multi-host networks can be used very easily. All you have to do is just setup your Swarm cluster and use docker network create -d mynet and voila: Your multi host network is ready. I want to do a benchmark of this new feature, however, the official multi host networking examples are in Virtualbox and local performance can be misleading. I created an image called mustafaakin/alpine-iperf just has the Alpine image plus iperf network benchmarking tool installed.</description>
     </item>
     
     <item>
       <title>Compiling QEMU with GlusterFS Support on Ubuntu 14.04</title>
-      <link>https://mustafaakin.dev/posts/2015-11-03-qemu-glusterfs-ubuntu/</link>
+      <link>/posts/2015-11-03-qemu-glusterfs-ubuntu/</link>
       <pubDate>Tue, 03 Nov 2015 00:00:00 +0000</pubDate>
       
-      <guid>https://mustafaakin.dev/posts/2015-11-03-qemu-glusterfs-ubuntu/</guid>
+      <guid>/posts/2015-11-03-qemu-glusterfs-ubuntu/</guid>
       <description>On Ubuntu 14.04 (and maybe later) Qemu does not come with GlusterFS support. To compile it, you have to fetch the sources and enable flags. You also need to get the build dependencies, and some debian package tools.
 You can install the dependencies as follows:
 $ sudo apt-get install build-essential glusterfs-common devscripts dpkg-dev $ sudo apt-get build-dep qemu You also need to execute the following command, but it might be better to create a script file and execute it:</description>
@@ -160,55 +160,55 @@ $ sudo apt-get install build-essential glusterfs-common devscripts dpkg-dev $ su
     
     <item>
       <title>Comparing ExpressJS Session Stores</title>
-      <link>https://mustafaakin.dev/posts/comparing-expressjs-session-stores/</link>
+      <link>/posts/comparing-expressjs-session-stores/</link>
       <pubDate>Wed, 06 Nov 2013 22:11:21 +0000</pubDate>
       
-      <guid>https://mustafaakin.dev/posts/comparing-expressjs-session-stores/</guid>
+      <guid>/posts/comparing-expressjs-session-stores/</guid>
       <description>For my next project, I was exploring the session storages for ExpressJS, and I found a question on StackOverflow, but I was frustrated with the accepted and 30 upvoted answer, which compares local in memory session store with remote session stores. The answer is very misleading, there is no chance that remote storage can beat local storage, even if the in-memory solution does O(n^9) calculations, it would be faster than going to web.</description>
     </item>
     
     <item>
       <title>My First Android Game: Izuna Drop</title>
-      <link>https://mustafaakin.dev/posts/my-first-android-game-izuna-drop/</link>
+      <link>/posts/my-first-android-game-izuna-drop/</link>
       <pubDate>Tue, 13 Aug 2013 21:33:01 +0000</pubDate>
       
-      <guid>https://mustafaakin.dev/posts/my-first-android-game-izuna-drop/</guid>
+      <guid>/posts/my-first-android-game-izuna-drop/</guid>
       <description>As a part of my CS-319 Object-Oriented Software Engineering course, I developed a computer game with Nail Akıncı and Naime Nur Çadırcı, called Izuna Drop. It is a simple space shooter clone. As the design was more imporant in that course, the implementation was not very efficient, it was written on Java, and due to our bugs, it requried approximately 1 GB of memory. If you wonder what that looked like, it is avaialable on GitHub/Izuna.</description>
     </item>
     
     <item>
       <title>How I learned to live with a 120GB  (after 500GB)</title>
-      <link>https://mustafaakin.dev/posts/how-i-learned-to-live-with-a-120gb-after-500gb/</link>
+      <link>/posts/how-i-learned-to-live-with-a-120gb-after-500gb/</link>
       <pubDate>Sat, 26 Jan 2013 20:32:49 +0000</pubDate>
       
-      <guid>https://mustafaakin.dev/posts/how-i-learned-to-live-with-a-120gb-after-500gb/</guid>
+      <guid>/posts/how-i-learned-to-live-with-a-120gb-after-500gb/</guid>
       <description>My laptop is from August &amp;lsquo;09, so it is now a little bit slow. It had a 500GB traditional spinning disk drive. I know, it is not dead yet, however random read/write is horrible. My Windows 7 installation took 1-2 minutes to boot and be ready to open new programs, so I have never closed my machine. I have always used hibernate/suspend. Opening heavy programs like Photoshop was not good. In fact, the biggest reason was, I am also using Linux for my development purposes.</description>
     </item>
     
     <item>
       <title>WSTP - File Transver Over Websockets</title>
-      <link>https://mustafaakin.dev/posts/2012-04-27-wsftp-file-transfer-over-websockets/</link>
+      <link>/posts/2012-04-27-wsftp-file-transfer-over-websockets/</link>
       <pubDate>Fri, 27 Apr 2012 23:31:51 +0000</pubDate>
       
-      <guid>https://mustafaakin.dev/posts/2012-04-27-wsftp-file-transfer-over-websockets/</guid>
+      <guid>/posts/2012-04-27-wsftp-file-transfer-over-websockets/</guid>
       <description>If you were following my blog, you may seem that I have once tried to make WS-FTP project with Java, however the web-sockets were on draft and it was changing quickly and they were not safe. Meantime, I have learned and mastered NodeJS and met Socket.io, and I decided to use them, since they were providing a better interface and it was much more easier to code a web server with NodeJS rather than Java.</description>
     </item>
     
     <item>
       <title>NodeJS Simple Clustering Benchmark</title>
-      <link>https://mustafaakin.dev/posts/nodejs-simple-clustering-benchmark/</link>
+      <link>/posts/nodejs-simple-clustering-benchmark/</link>
       <pubDate>Mon, 19 Mar 2012 18:29:21 +0000</pubDate>
       
-      <guid>https://mustafaakin.dev/posts/nodejs-simple-clustering-benchmark/</guid>
+      <guid>/posts/nodejs-simple-clustering-benchmark/</guid>
       <description>If you are interested in node, you know that NodeJS uses an event driven I/O model and it is single threaded, so it is not meant to be working multi-core. However, by using the clustering support, you can bump your applications speed. I will give a a plain hello example, however consider that you will never send just hello world to anyone in the world without any background processing like database connections, cache connections, file operations or just simply I/O.</description>
     </item>
     
     <item>
       <title>Introducing WebSocket File Transfer</title>
-      <link>https://mustafaakin.dev/posts/introducing-websocket-file-transfer/</link>
+      <link>/posts/introducing-websocket-file-transfer/</link>
       <pubDate>Sat, 15 Oct 2011 23:10:07 +0000</pubDate>
       
-      <guid>https://mustafaakin.dev/posts/introducing-websocket-file-transfer/</guid>
+      <guid>/posts/introducing-websocket-file-transfer/</guid>
       <description>First of all, all my work below is in draft form, and not optimized, even a little bit. I have performance issues, but I just want to represent the capabilities of this new technology. I am neither IETF or any other organization that can define a protocol, but I hope this article would inspire some people.
 HTML5 Magic As you might not know, the HTML 5 specification offers File API for manipulating both binary and text files on client side.</description>
     </item>

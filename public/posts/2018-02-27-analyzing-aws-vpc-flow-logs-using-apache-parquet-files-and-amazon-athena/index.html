@@ -12,16 +12,15 @@
   <meta name="description" content="" />
 
   
-  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/print.css" media="print">
-  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/poole.css">
-  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/syntax.css">
-  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/hyde.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
-
+  <link type="text/css" rel="stylesheet" href="css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="css/poole.css">
+  <link type="text/css" rel="stylesheet" href="css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="css/hyde.css">
+  
 
   
-  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
-  <link rel="shortcut icon" href="/favicon.png">
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="../../apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="../../favicon.png">
 
   
   
@@ -31,7 +30,7 @@
   <aside class="sidebar">
   <div class="container sidebar-sticky">
     <div class="sidebar-about">
-      <a href="https://mustafaakin.dev/"><h1>Mustafa Akın</h1></a>
+      <a href=""><h1>Mustafa Akın</h1></a>
       <p class="lead">
        SRE Architect @Atlassian Opsgenie, PhD Student @Bikkent University CS 
       </p>
@@ -39,7 +38,7 @@
 
     <nav>
       <ul class="sidebar-nav">
-        <li><a href="https://mustafaakin.dev/">Home</a> </li>
+        <li><a href="">Home</a> </li>
         <li><a href="https://twitter.com/mustafaakin/"> Github </a></li><li><a href="https://www.linkedin.com/in/mustafaakin/"> LinkedIn </a></li><li><a href="https://github.com/mustafaakin/"> Twitter </a></li>
       </ul>
     </nav>
@@ -56,7 +55,7 @@
 <p>Network security is an essential topic for companies, as a compromised network is a direct threat to both users and the applications. The easiest way to maintain security is just blocking the unauthorized activity or only allowing the predetermined traffic. For instance, if you have an Elasticsearch cluster, there is no need to open ports other than 9200 and 9300 to your applications. However, as the number of components increase and the requirements of your software stack pile up, it becomes harder to allow the permissions correctly. This causes misconfigurations that can allow unintended access into your network.</p>
 <p>Proper monitoring is critical even for a simple web application to ensure the availability and reliability of your system. It is like unit testing, but from a different perspective. Most people monitor the CPU utilization, active connections, request counts by status codes, individual errors and act upon them. It is also easy to monitor the network activity. All your network activity is a sequence of various types of packets, such as TCP, UDP, ICMP packets traveling through the internet. Each packet has a source address, destination address, and depending on protocols; they have source and destination ports. So, if you can count how many packets and bytes are sent to each host, you would obtain a pretty useful information which is called a network flow. If a backend server is connecting to an address you do not expect, you may assume your application is compromised.</p>
 <p>There are different ways of collecting network flow statistics. Standard protocols such as Netflow, SFlow, and IPFix allow collecting network flow information from servers, network switches and routers. However, if you are an Amazon Web Services user, your VPC (Virtual Private Cloud) logs are exported to Cloudwatch in the following format:</p>
-<p><img src="/img/0__sj7gKt6zqTI1FRjf." alt=""></p>
+<p><img src="../../img/0__sj7gKt6zqTI1FRjf." alt=""></p>
 <p>Each flow gives you enough information about the network activity since you can collect all of the exchanged information metadata. Compared to the standard flow formats, there is also an <em>Action</em> field, which indicates whether the packet is allowed or dropped. Dropping a packet occurs due to the security group rules or network ACL rules of the VPC. Dropped packets can notify you of the bots that are surveying the internet, or an internal service that is trying to connect to a wrong server, or even worse, an attacker inside your subnet trying to find a hole by brute forcing passwords. Besides the network security concerns, you can also see the most communicating hosts and plan better deployment strategies, divide servers or services to similar pieces. You can even use placement groups for close proximities.</p>
 <h3 id="alternatives-for-analysing-vpclogs">Alternatives for analysing VPC logs</h3>
 <p>As there are loads of information sitting on VPC Flow logs, it would be very logical to be able to query them. However, all you can do is search as they sit in CloudWatch. If you want to aggregate or run advanced queries, you have to export them to somewhere suitable.</p>
@@ -73,7 +72,7 @@
 <p>Athena is a managed Presto service by AWS. You can define tables for CSV, Parquet, ORC, JSON. Compressed JSON/CSV files are stored in S3. It can even use RegEx to extract the columns on the fly. However, Athena only supports selection queries. It means you can’t modify the existing data. It is a managed service; meaning that, you do not control or pay for any CPU or RAM, you only pay for the total data scanned. Therefore, if you use columnar storage files, your processing isn’t only fast; it also scans much fewer data, hence much cheaper. Currently, the cost is 5$ per TB scanned data.</p>
 <h3 id="partitioning-thedata">Partitioning the Data</h3>
 <p>Big data systems often make use of partitioning the data, since they can’t build indexes upon data as it yields to locks which affect scaling. As partitioning can’t be changed later (it will need to re-read &amp; write all of the data), it needs to be planned carefully. The most common partitioning scheme is partitioning by date. Since most of the data we produce is time-based, it works nice enough. However, having too many partitions can lead to a fewer amount of data in each bucket, and causes a delay since too many partitions might be read for some queries. Therefore, partitioning by <em>minute</em> is probably not a good choice. Partition keys should create evenly distributed partitions as much as possible. Otherwise, your load can’t be distributed enough to scale. Athena needs to know partitions. Developers should add partitions manually by executing <em>ALTER TABLE ADD PARTITION</em> command or <em>MSCK REPAIR</em> that can detect new partitions if you set it up correctly. However, bear in mind that <em>MSCK REPAIR</em> can take a lot of time in S3 if there are lots of files.</p>
-<p><img src="/img/0__OQU8SDM0ytvcD5NM." alt="An example partitoning, column selection and filetering example: SELECT avg(age) FROM users WHERE date = ‘2018–02’ AND name LIKE ‘A%’.  Data is partitioned by date field and name column is used in filtering and age column is extracted. The other columns such as ssn and address are not read at all.">
+<p><img src="../../img/0__OQU8SDM0ytvcD5NM." alt="An example partitoning, column selection and filetering example: SELECT avg(age) FROM users WHERE date = ‘2018–02’ AND name LIKE ‘A%’.  Data is partitioned by date field and name column is used in filtering and age column is extracted. The other columns such as ssn and address are not read at all.">
 An example partitoning, column selection and filetering example: <strong><em>SELECT avg(age) FROM users WHERE date = ‘2018–02’ AND name LIKE ‘A%’.</em></strong>  Data is partitioned by <strong>date</strong> field and <strong>name</strong> column is used in filtering and <strong>age</strong> column is extracted. The other columns such as <strong>ssn</strong> and <strong>address</strong> are not read at all.</p>
 <h3 id="creating-parquet-files-with-java--awslambda">Creating Parquet Files with Java &amp; AWS Lambda</h3>
 <p><a href="https://github.com/awslabs/aws-big-data-blog/tree/master/aws-blog-spark-parquet-conversion">AWS documentation recommends</a> using Amazon EMR for converting files to Apache Parquet format. But this is a little overkill. Writing and monitoring Spark jobs is hard. Instead, we will use the following scheme:</p>
@@ -84,7 +83,7 @@ An example partitoning, column selection and filetering example: <strong><em>SEL
 </ul>
 <p>Yes, it is that simple. It is serverless and can quickly scale. As Firehose buffers the data by second or the total data received, it has a delay. The submitted data either needs to be under 1MB or you should wait 60 seconds for the data to be written to S3. In some cases, this delay is significant, and if you need real-time analysis, you should use Kinesis Streams instead of Firehose. However, as we are querying data ad-hoc, we often don’t require near real-time results. We can live with those limitations.</p>
 <p>In our experiments, we have set a 128 MB buffer with 15 minutes of timeout. We also used a transforming lambda to convert the logs to JSON format, so that Firehose outputs the flow log structure instead of a Cloudwatch log structure. A 128 MB of VPC Logs JSON data becomes 5 MB with GZIP. When converted to Parquet with Snappy compression, it becomes as low as 3 MB. Even though Snappy compression tends to be large, using related columns in compression helps to reduce the data.</p>
-<p><img src="/img/0____eARcj4HHd2oXCLB." alt="Architecture of transforming VPC Flow logs to Parquet Files with Firehose and Lambda">
+<p><img src="../../img/0____eARcj4HHd2oXCLB." alt="Architecture of transforming VPC Flow logs to Parquet Files with Firehose and Lambda">
 Architecture of transforming VPC Flow logs to Parquet Files with Firehose and Lambda</p>
 <h3 id="implementation-details">Implementation Details</h3>
 <p>Now, we’ll see how we can create Parquet files with Java. Apache Parquet is officially supported on Java and C++. In our blog post, we have chosen Java to implement creating Parquet files from VPC flow logs, as AWS Lambda supports Java 8 and we are more comfortable with it. First of all, you have to include Parquet and Hadoop libraries in your dependency manager. In our case, we use Maven and you should add these dependencies:</p>

@@ -12,16 +12,15 @@
   <meta name="description" content="" />
 
   
-  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/print.css" media="print">
-  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/poole.css">
-  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/syntax.css">
-  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/hyde.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
-
+  <link type="text/css" rel="stylesheet" href="css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="css/poole.css">
+  <link type="text/css" rel="stylesheet" href="css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="css/hyde.css">
+  
 
   
-  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
-  <link rel="shortcut icon" href="/favicon.png">
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="../../apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="../../favicon.png">
 
   
   
@@ -31,7 +30,7 @@
   <aside class="sidebar">
   <div class="container sidebar-sticky">
     <div class="sidebar-about">
-      <a href="https://mustafaakin.dev/"><h1>Mustafa Akın</h1></a>
+      <a href=""><h1>Mustafa Akın</h1></a>
       <p class="lead">
        SRE Architect @Atlassian Opsgenie, PhD Student @Bikkent University CS 
       </p>
@@ -39,7 +38,7 @@
 
     <nav>
       <ul class="sidebar-nav">
-        <li><a href="https://mustafaakin.dev/">Home</a> </li>
+        <li><a href="">Home</a> </li>
         <li><a href="https://twitter.com/mustafaakin/"> Github </a></li><li><a href="https://www.linkedin.com/in/mustafaakin/"> LinkedIn </a></li><li><a href="https://github.com/mustafaakin/"> Twitter </a></li>
       </ul>
     </nav>
@@ -119,7 +118,7 @@
 <span class="mf">6209536.0</span>                           <span class="o">|</span><span class="nx">zsh</span>
 </code></pre></div><p>As looking at the directory of the Elasticsearch, I also see a command line SQL client for ad-hoc queries. There is also a JDBC driver to integrate it directly in Java programs or the data visualization tools.</p>
 <p>An example query with Filebeat logs where message field is used in text matcing searches for keyword <strong>sleep</strong>:</p>
-<p><img src="/img/1__AQL9f4zNDHbvKTBZyw4Vug.png" alt="A screenshot from querying Filebeat logs with Command Line SQL Client of Elasticsearch with an ASCII logo of something I do not comprehend."></p>
+<p><img src="../../img/1__AQL9f4zNDHbvKTBZyw4Vug.png" alt="A screenshot from querying Filebeat logs with Command Line SQL Client of Elasticsearch with an ASCII logo of something I do not comprehend."></p>
 <p>There is also another endpoint for converting the SQL query to a regular Elasticsearch query. It can be useful if you would like to debug it. For comparison, one of the above queries results in the following long form with Translate API:</p>
 <div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="nx">GET</span> <span class="nx">_xpack</span><span class="o">/</span><span class="nx">sql</span><span class="o">/</span><span class="nx">translate</span>
 <span class="p">{</span>

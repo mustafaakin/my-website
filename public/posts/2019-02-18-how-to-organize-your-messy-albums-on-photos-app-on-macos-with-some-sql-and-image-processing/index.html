@@ -12,16 +12,15 @@
   <meta name="description" content="" />
 
   
-  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/print.css" media="print">
-  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/poole.css">
-  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/syntax.css">
-  <link type="text/css" rel="stylesheet" href="https://mustafaakin.dev/css/hyde.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Abril+Fatface|PT+Sans:400,400i,700">
-
+  <link type="text/css" rel="stylesheet" href="css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="css/poole.css">
+  <link type="text/css" rel="stylesheet" href="css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="css/hyde.css">
+  
 
   
-  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/apple-touch-icon-144-precomposed.png">
-  <link rel="shortcut icon" href="/favicon.png">
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="../../apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="../../favicon.png">
 
   
   
@@ -31,7 +30,7 @@
   <aside class="sidebar">
   <div class="container sidebar-sticky">
     <div class="sidebar-about">
-      <a href="https://mustafaakin.dev/"><h1>Mustafa Akın</h1></a>
+      <a href=""><h1>Mustafa Akın</h1></a>
       <p class="lead">
        SRE Architect @Atlassian Opsgenie, PhD Student @Bikkent University CS 
       </p>
@@ -39,7 +38,7 @@
 
     <nav>
       <ul class="sidebar-nav">
-        <li><a href="https://mustafaakin.dev/">Home</a> </li>
+        <li><a href="">Home</a> </li>
         <li><a href="https://twitter.com/mustafaakin/"> Github </a></li><li><a href="https://www.linkedin.com/in/mustafaakin/"> LinkedIn </a></li><li><a href="https://github.com/mustafaakin/"> Twitter </a></li>
       </ul>
     </nav>
@@ -117,12 +116,12 @@
 2018-10-29 31  
 2019-01-03 32
 </code></pre><p>And as you see, there are clusters of photos in those dates, that are not in any albums. It is very likely that I have a potential album between 23–24 September 2018. By using the Smart Album feature of photos, you can create a dynamic album with any conditions you like. And the above input will be helpful for me to view better and create more meaningful albums.</p>
-<p><img src="/img/1__Rf9dauRj7KWpSWeWipFPIg.png" alt="Smart Album Creation options with many filters available. You can also select People, Camera & Lens Model, Focal Length, ISO but they might not be helpful as these one.">
+<p><img src="../../img/1__Rf9dauRj7KWpSWeWipFPIg.png" alt="Smart Album Creation options with many filters available. You can also select People, Camera & Lens Model, Focal Length, ISO but they might not be helpful as these one.">
 Smart Album Creation options with many filters available. You can also select People, Camera &amp; Lens Model, Focal Length, ISO but they might not be helpful as these one.</p>
 <h4 id="4-bonus-find-out-blurry-pictures-inalbums">4. BONUS: Find out blurry pictures in albums</h4>
 <p>Okay, this is beyond just SQL. But, I will show you what can you do. Even though you tell Photos to upload all the Photos to preserve space (as a poor guy with 256GB disk), the thumbnails of all the photos are stored in the disk and has around 100–200kb, around 1 megapixels resolution, which can be enough for most image processing applications. Maybe you can deep learn something, such as you were always in the left of your mother in pictures, I don’t know.</p>
 <p>The thumbnails are in resources/proxies/derivatives/ folder in the Photos library folder. You will find out there are folders wih hexadecimal names, which are actually translation of model ids of the RKMaster to hex. There are two pictures inside, one is a mini and the other one is a thumbnail. Mini is very small, we will make use of the thumbnails. When I started writing this tutorial, I was on High Sierra, and when I updated it to Mojave I could not issue ls command in that folder, because I denied Photos access to iTerm. But you can still browse them through Finder. And the following Python script will ask for permission through a simple form.</p>
-<p><img src="/img/1__65KnPjtjaJiJg3ZdJ3BlMQ.png" alt="This does not help anyone, Apple. I know the pictures are there and hex numbers are not magic.">
+<p><img src="../../img/1__65KnPjtjaJiJg3ZdJ3BlMQ.png" alt="This does not help anyone, Apple. I know the pictures are there and hex numbers are not magic.">
 This does not help anyone, Apple. I know the pictures are there and hex numbers are not magic.</p>
 <p>I want to give an approximate blur index to each photo, so I can use that information in the SQLite, to assess the qualities of the photos and albums. To calculate how much of a blur a photo has, I used OpenCV, the most popular computer vision libraries, which can do find out the score in almost one line, by using a simple convolution (of course you can do that yourself, but I used <a href="https://www.pyimagesearch.com/2015/09/07/blur-detection-with-opencv/">this nice blog</a> as a simple example) and come up with the following snippet:</p>
 <p>I’m not going into the details of how the focus/blurness score is calculated (It’s not like I can anyways, I forgot my Image Processing course pretty fast), but in short: lower the score, more blur, higher the score, better. It turns out that this score can easily summarize my albums blurrines.</p>
