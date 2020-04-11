@@ -3,7 +3,7 @@ title: Installing a multi-node Kubernetes cluster with Ubuntu Multipass
 date: 2020-04-11
 --- 
 
-There are tons of tutorials out there for installing Kubernetes. I am just documenting my homelab installation. I like to install Kubernetes without external tools, but only on relying _kubeadm_ it gives me more control and helps me to understand how it actually works. 
+There are tons of tutorials out there for installing Kubernetes. I am just documenting my homelab installation. I like to install Kubernetes without external tools, but relying on _kubeadm_ and using actual Linux installations in VMs, it gives me more control and helps me to understand how it actually works, compared to alternatives like minikube and kind. 
 
 First, I will create 3 VMs with [Ubuntu Multipass](https://multipass.run). The reason I have chosen it is that it makes it really easy to create virtual machines on demand. It's not rocket science, it works with QEMU under the hood, but it makes the management of it easy by configuring the network bridging, disk images and non-ending list of QEMU variables. It has a potential to become the Docker of creating virtual machines, but right now only Ubuntu images are available. As an alternative, one can choose [Weave Ingite](https://github.com/weaveworks/ignite), which is based on Firecracker MicroVM, but boots compatible kernels with OCI images under the hood. It's an interesting project to checkout, I will be working on it soon. 
 
