@@ -46,7 +46,7 @@ Memory usage:   103.2M out of 7.8G
 
 At the time of wrtiting this blog, I'm using Ubuntu 20.04 Beta, but multipass defaults to 18.04 for stability reasons. Following the [official documentation](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/) of installing Kubernetes, I have selected Docker for container runtime, the installation can be found [here](https://kubernetes.io/docs/setup/production-environment/container-runtimes/#docker).
 
-After ensuring docker, kubeadm, kubectl is installed in each node, we can go ahead with actually creating the cluster. One caveat though; in order to create a multi node networking available, we need to select a network add-on before creating the cluster. It's written in the docs, but can be easily overlooked. I have chosen Calico as it's the easiest one. Also my home network is on `192.168.3.1/24` and to ensure it does not conflict with my home network and the network multipass builds, I will create a network in the `172.16.0.0/12`. I probably won't need `2^20` IP, but anways. 
+After ensuring docker, kubeadm, kubectl is installed in each node, we can go ahead with actually creating the cluster. One caveat though; in order to create proper multi-node networking, we need to select a network add-on before creating the cluster. It's written in the docs, but can be easily overlooked. I have chosen Calico as it's the easiest one. Also my home network is on `192.168.3.1/24` and to ensure it does not conflict with my home network and the network multipass builds, I will create a network in the `172.16.0.0/12`. I probably won't need `2^20` IP, but anways. 
 
 ```sh
 # Kick start the cluster creation in node1
