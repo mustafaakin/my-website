@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.69.2" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:description" content="There are tons of tutorials out there for installing Kubernetes. I am just documenting my homelab installation. I like to install Kubernetes without external tools, but relying on kubeadm and using actual Linux installations in VMs, it gives me more control and helps me to understand how it actually works, compared to alternatives like minikube and kind.
+First, I will create 3 VMs with Ubuntu Multipass. The reason I have chosen it is that it makes it really easy to create virtual machines on demand." />
+  <meta name="twitter:title" content="Installing a multi-node Kubernetes cluster with Ubuntu Multipass " />
+  <meta name="twitter:site" content="@mustafaakin" />
+  <meta name="twitter:creator" content="@mustafaakin" />
+  <title>Installing a multi-node Kubernetes cluster with Ubuntu Multipass &middot; Mustafa Akın</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="../../css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="../../css/poole.css">
+  <link type="text/css" rel="stylesheet" href="../../css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="../../css/hyde.css">
+  
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="../../apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="../../favicon.ico">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href=""><h1>Mustafa Akın</h1></a>
+      <p class="lead">
+       SRE Architect @Atlassian Opsgenie, PhD Student @Bilkent University CS 
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li><a href="">Home</a> </li>
+        <li><a href="https://github.com/mustafaakin/"> Github </a></li><li><a href="https://www.linkedin.com/in/mustafaakin/"> LinkedIn </a></li><li><a href="https://twitter.com/mustafaakin/"> Twitter </a></li>
+      </ul>
+    </nav>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>Installing a multi-node Kubernetes cluster with Ubuntu Multipass</h1>
+  <time datetime=2020-04-11T00:00:00Z class="post-date">Sat, Apr 11, 2020</time>
+  <p>There are tons of tutorials out there for installing Kubernetes. I am just documenting my homelab installation. I like to install Kubernetes without external tools, but relying on <em>kubeadm</em> and using actual Linux installations in VMs, it gives me more control and helps me to understand how it actually works, compared to alternatives like minikube and kind.</p>
+<p>First, I will create 3 VMs with <a href="https://multipass.run">Ubuntu Multipass</a>. The reason I have chosen it is that it makes it really easy to create virtual machines on demand. It&rsquo;s not rocket science, it works with QEMU under the hood, but it makes the management of it easy by configuring the network bridging, disk images and non-ending list of QEMU variables. It has a potential to become the Docker of creating virtual machines, but right now only Ubuntu images are available. As an alternative, one can choose <a href="https://github.com/weaveworks/ignite">Weave Ingite</a>, which is based on Firecracker MicroVM, but boots compatible kernels with OCI images under the hood. It&rsquo;s an interesting project to checkout, I will be working on it soon.</p>
+<p>The following scripts creates the VMs. If the disk images are available, it takes approximately 30 seconds per VM to be available.</p>
+<div class="highlight"><pre class="chroma"><code class="language-shell" data-lang="shell">$ multipass launch -c <span class="m">4</span> -d 50G -m 8G -n node1
+$ multipass launch -c <span class="m">4</span> -d 50G -m 8G -n node2
+$ multipass launch -c <span class="m">4</span> -d 50G -m 8G -n node3
+
+<span class="c1"># Verify all worked correctly.</span>
+$ multipass info --all
+Name:           node1
+State:          Running
+IPv4:           10.161.139.229
+Release:        Ubuntu 18.04.4 LTS
+Image hash:     fe3030939822 <span class="o">(</span>Ubuntu 18.04 LTS<span class="o">)</span>
+Load:           0.08 0.02 0.01
+Disk usage:     1006.5M out of 48.3G
+Memory usage:   99.5M out of 7.8G
+
+Name:           node2
+State:          Running
+IPv4:           10.161.139.12
+Release:        Ubuntu 18.04.4 LTS
+Image hash:     fe3030939822 <span class="o">(</span>Ubuntu 18.04 LTS<span class="o">)</span>
+Load:           0.04 0.03 0.01
+Disk usage:     1006.1M out of 48.3G
+Memory usage:   102.0M out of 7.8G
+
+Name:           node3
+State:          Running
+IPv4:           10.161.139.185
+Release:        Ubuntu 18.04.4 LTS
+Image hash:     fe3030939822 <span class="o">(</span>Ubuntu 18.04 LTS<span class="o">)</span>
+Load:           0.09 0.04 0.01
+Disk usage:     1007.7M out of 48.3G
+Memory usage:   103.2M out of 7.8G
+</code></pre></div><p>At the time of wrtiting this blog, I&rsquo;m using Ubuntu 20.04 Beta, but multipass defaults to 18.04 for stability reasons. Following the <a href="https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/">official documentation</a> of installing Kubernetes, I have selected Docker for container runtime, the installation can be found <a href="https://kubernetes.io/docs/setup/production-environment/container-runtimes/#docker">here</a>.</p>
+<p>After ensuring docker, kubeadm, kubectl is installed in each node, we can go ahead with actually creating the cluster. One caveat though; in order to create proper multi-node networking, we need to select a network add-on before creating the cluster. It&rsquo;s written in the docs, but can be easily overlooked. I have chosen Calico as it&rsquo;s the easiest one. Also my home network is on <code>192.168.3.1/24</code> and to ensure it does not conflict with my home network and the network multipass builds, I will create a network in the <code>172.16.0.0/12</code>. I probably won&rsquo;t need <code>2^20</code> IP, but anways.</p>
+<div class="highlight"><pre class="chroma"><code class="language-sh" data-lang="sh"><span class="c1"># Kick start the cluster creation in node1</span>
+$ kubeadm init --pod-network-cidr<span class="o">=</span>172.16.0.0/12
+.... 
+Your Kubernetes control-plane has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p <span class="nv">$HOME</span>/.kube
+  sudo cp -i /etc/kubernetes/admin.conf <span class="nv">$HOME</span>/.kube/config
+  sudo chown <span class="k">$(</span>id -u<span class="k">)</span>:<span class="k">$(</span>id -g<span class="k">)</span> <span class="nv">$HOME</span>/.kube/config
+
+You should now deploy a pod network to the cluster.
+Run <span class="s2">&#34;kubectl apply -f [podnetwork].yaml&#34;</span> with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join 10.161.139.229:6443 --token h6r5uv.3vwcmbxtlkzwpwow <span class="se">\
+</span><span class="se"></span>  --discovery-token-ca-cert-hash sha256:bc23f307454945755ffe5ed542e2732d79baedcbefc95a92f856d13456333265 
+</code></pre></div><p>After setting up kubectl, you can join the node2 and node3 to the cluster. run the <code>kubeadm join</code> command as specified in the output of the <code>kubeadm init</code> in the first node. The nodes will pull the related Docker images and kubelets will join the cluster really quick.</p>
+<div class="highlight"><pre class="chroma"><code class="language-sh" data-lang="sh">$ kubectl get node
+NAME    STATUS     ROLES    AGE     VERSION
+node1   NotReady   master   5m42s   v1.18.1
+node2   NotReady   &lt;none&gt;   5m15s   v1.18.1
+node3   NotReady   &lt;none&gt;   5m1s    v1.18.1
+</code></pre></div><p>You see the nodes are there, but they are not ready. Because the network add-on is not setup, and they cannot communicate properly. Download the manifest of Calico network and remember to change the CIDR and apply it.</p>
+<div class="highlight"><pre class="chroma"><code class="language-sh" data-lang="sh">$ wget https://docs.projectcalico.org/v3.11/manifests/calico.yaml
+$ vi calico.yaml <span class="c1"># Chagne 192.168.0.0/16 to 172.16.0.0/12</span>
+$ kubectl apply -f calico.yaml
+<span class="c1"># Wait a little</span>
+$ kubectl get node
+NAME    STATUS   ROLES    AGE     VERSION
+node1   Ready    master   8m50s   v1.18.1
+node2   Ready    &lt;none&gt;   8m23s   v1.18.1
+node3   Ready    &lt;none&gt;   8m9s    v1.18.1
+</code></pre></div><p>As you see the installation was really quick! However, I would like the opportunity to manage my cluster in the host system, not requiring to use multipass to shell into the instance. To do that, we need to copy the kubeconfig file.</p>
+<div class="highlight"><pre class="chroma"><code class="language-sh" data-lang="sh">$ mkdir ~/.kube
+$ multipass copy-files node1:.kube/config ~/.kube/
+$ kubectl get node
+</code></pre></div><p>Yeah, it&rsquo;s working! It&rsquo;s a pleasant experience. Most people think installing Kubernetes is hard, but it is actually not. For simpler use cases, Minikube works great. Docker for Desktop is also good enough experience for macOS and Windows. For my own experiments, I need raw Kubernetes installation, without any hacks and full access to the kubelet hosts.  Kubeadm works very fast and requires minimal configuration. Of course, running a production ready Kubernetes cluster is a complicated task and you are probably best using managed Kubernetes services. I did install on my machine because I need it for Ph.D experiments, and I have many cores and memory to spare and it is much cheaper.</p>
+<p>Finally, I want to give a shout out to Ubuntu for developing <a href="https://multipass.run/">multipass</a>. It also works on macOS and Windows. It&rsquo;s faster than similar tools. You can close the VMs with <code>multipass stop --all</code> and start them again with <code>multipass start --all</code>. The nodes will get the same IP address (need to confirm it&rsquo;s always the case) and you can resume working since kubelet and the etcd will be started.</p>
+
+</div>
+
+<h2>Comments</h2>
+<div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "mustafaakindev" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </main>
+
+    
+      
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-163369693-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+    
+  </body>
+</html>

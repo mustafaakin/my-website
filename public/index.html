@@ -3,24 +3,24 @@
 <head>
   <link href="https://gmpg.org/xfn/11" rel="profile">
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <meta name="generator" content="Hugo 0.69.0" />
+  <meta name="generator" content="Hugo 0.69.2" />
 
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>Mustafa Akın</title>
-  <meta name="description" content="SRE Architect @Atlassian Opsgenie, PhD Student @Bikkent University CS" />
+  <meta name="description" content="SRE Architect @Atlassian Opsgenie, PhD Student @Bilkent University CS" />
 
   
-  <link type="text/css" rel="stylesheet" href="css/print.css" media="print">
-  <link type="text/css" rel="stylesheet" href="css/poole.css">
-  <link type="text/css" rel="stylesheet" href="css/syntax.css">
-  <link type="text/css" rel="stylesheet" href="css/hyde.css">
+  <link type="text/css" rel="stylesheet" href="./css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="./css/poole.css">
+  <link type="text/css" rel="stylesheet" href="./css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="./css/hyde.css">
   
 
   
   <link rel="apple-touch-icon-precomposed" sizes="144x144" href="./apple-touch-icon-144-precomposed.png">
-  <link rel="shortcut icon" href="./favicon.png">
+  <link rel="shortcut icon" href="./favicon.ico">
 
   
   <link href="./index.xml" rel="alternate" type="application/rss+xml" title="Mustafa Akın" />
@@ -33,14 +33,14 @@
     <div class="sidebar-about">
       <a href=""><h1>Mustafa Akın</h1></a>
       <p class="lead">
-       SRE Architect @Atlassian Opsgenie, PhD Student @Bikkent University CS 
+       SRE Architect @Atlassian Opsgenie, PhD Student @Bilkent University CS 
       </p>
     </div>
 
     <nav>
       <ul class="sidebar-nav">
         <li><a href="">Home</a> </li>
-        <li><a href="https://twitter.com/mustafaakin/"> Github </a></li><li><a href="https://www.linkedin.com/in/mustafaakin/"> LinkedIn </a></li><li><a href="https://github.com/mustafaakin/"> Twitter </a></li>
+        <li><a href="https://github.com/mustafaakin/"> Github </a></li><li><a href="https://www.linkedin.com/in/mustafaakin/"> LinkedIn </a></li><li><a href="https://twitter.com/mustafaakin/"> Twitter </a></li>
       </ul>
     </nav>
   </div>
@@ -49,6 +49,29 @@
     <main class="content container">
     <div class="posts">
 <article class="post">
+  <h1 class="post-title">
+    <a href="./posts/2020-04-26-using-jsonnet-to-generate-dynamic-tekton-pipelines-in-kubernetes/">Using Jsonnet to Generate Dynamic Tekton Pipelines in Kubernetes</a>
+  </h1>
+  <time datetime="2020-04-26T00:00:00Z" class="post-date">Sun, Apr 26, 2020</time>
+  For the readers that might be unaware, Tekton is a cloud-native CI/CD solution. In other words, it&rsquo;s a pipeline for Kubernetes that can generate DAGs (directed acyclic graph). It&rsquo;s one of the most straightforward solutions to run dependent Pods and steps in Kubernetes. Tekton runs pipelines as Task CRDs (Custom Resource Definition), whereas every task can have one or more sequential steps. Also, a Task can have a dependency on another task, which allows building a DAG.
+  
+  <div class="read-more-link">
+    <a href="./posts/2020-04-26-using-jsonnet-to-generate-dynamic-tekton-pipelines-in-kubernetes/">Read More…</a>
+  </div>
+  
+</article><article class="post">
+  <h1 class="post-title">
+    <a href="./posts/2020-04-11-installing-a-multi-node-kubernetes-cluster-with-ubuntu-multipass/">Installing a multi-node Kubernetes cluster with Ubuntu Multipass</a>
+  </h1>
+  <time datetime="2020-04-11T00:00:00Z" class="post-date">Sat, Apr 11, 2020</time>
+  There are tons of tutorials out there for installing Kubernetes. I am just documenting my homelab installation. I like to install Kubernetes without external tools, but relying on kubeadm and using actual Linux installations in VMs, it gives me more control and helps me to understand how it actually works, compared to alternatives like minikube and kind.
+First, I will create 3 VMs with Ubuntu Multipass. The reason I have chosen it is that it makes it really easy to create virtual machines on demand.
+  
+  <div class="read-more-link">
+    <a href="./posts/2020-04-11-installing-a-multi-node-kubernetes-cluster-with-ubuntu-multipass/">Read More…</a>
+  </div>
+  
+</article><article class="post">
   <h1 class="post-title">
     <a href="./posts/2020-04-10-i-have-returned-to-linux-and-i3wm/">I have returned to Linux and i3wm, and hopefully will be writing more posts!</a>
   </h1>

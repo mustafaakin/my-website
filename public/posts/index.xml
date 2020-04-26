@@ -6,10 +6,29 @@
     <description>Recent content in Posts on Mustafa Akın</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 10 Apr 2020 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Sun, 26 Apr 2020 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="/posts/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Using Jsonnet to Generate Dynamic Tekton Pipelines in Kubernetes</title>
+      <link>/posts/2020-04-26-using-jsonnet-to-generate-dynamic-tekton-pipelines-in-kubernetes/</link>
+      <pubDate>Sun, 26 Apr 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2020-04-26-using-jsonnet-to-generate-dynamic-tekton-pipelines-in-kubernetes/</guid>
+      <description>For the readers that might be unaware, Tekton is a cloud-native CI/CD solution. In other words, it&amp;rsquo;s a pipeline for Kubernetes that can generate DAGs (directed acyclic graph). It&amp;rsquo;s one of the most straightforward solutions to run dependent Pods and steps in Kubernetes. Tekton runs pipelines as Task CRDs (Custom Resource Definition), whereas every task can have one or more sequential steps. Also, a Task can have a dependency on another task, which allows building a DAG.</description>
+    </item>
+    
+    <item>
+      <title>Installing a multi-node Kubernetes cluster with Ubuntu Multipass</title>
+      <link>/posts/2020-04-11-installing-a-multi-node-kubernetes-cluster-with-ubuntu-multipass/</link>
+      <pubDate>Sat, 11 Apr 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/posts/2020-04-11-installing-a-multi-node-kubernetes-cluster-with-ubuntu-multipass/</guid>
+      <description>There are tons of tutorials out there for installing Kubernetes. I am just documenting my homelab installation. I like to install Kubernetes without external tools, but relying on kubeadm and using actual Linux installations in VMs, it gives me more control and helps me to understand how it actually works, compared to alternatives like minikube and kind.
+First, I will create 3 VMs with Ubuntu Multipass. The reason I have chosen it is that it makes it really easy to create virtual machines on demand.</description>
+    </item>
     
     <item>
       <title>I have returned to Linux and i3wm, and hopefully will be writing more posts!</title>
