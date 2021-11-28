@@ -6,7 +6,7 @@ disqusShortname = "mustafaakindev"
 googleAnalytics = "UA-163369693-1"
 
 [params]
-  description = "SRE Architect @Atlassian Opsgenie, PhD Student @Bilkent University CS"
+  description = "Co-founder at @Resmo, previously Principal SRE at @Atlassian, Opsgenie"
 	layoutReverse = false
 
 [Menus]
