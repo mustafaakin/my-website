@@ -1,5 +1,5 @@
 ---
-title: Running IntellJ IDEA with JDK 17 for Better Render Performance with Metal
+title: Running IntelliJ IDEA with JDK 17 for Better Render Performance with Metal
 date: 2021-12-08
 --- 
 
