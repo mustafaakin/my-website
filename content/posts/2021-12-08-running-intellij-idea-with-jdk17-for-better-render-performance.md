@@ -27,6 +27,7 @@ Following flags needs to be added to your `vmoptions` because Java 17 [changed e
   --add-exports=java.desktop/com.apple.eawt=ALL-UNNAMED
   --add-exports=java.desktop/com.apple.laf=ALL-UNNAMED
   --add-exports=java.desktop/com.apple.eawt.event=ALL-UNNAMED
+  --add-opens=java.desktop/sun.lwawt.macosx=ALL-UNNAMED
 ```
 
 Then download the latest release from https://github.com/JetBrains/JetBrainsRuntime/releases. Beware of your platform. I have downloaded file [jbr_jcef-17_0_1-osx-aarch64-b164.8.tar.gz](https://cache-redirector.jetbrains.com/intellij-jbr/jbr_jcef-17_0_1-osx-aarch64-b164.8.tar.gz) for an M1 Mac, which is an `osx-aarch64` platform. Note that if you untar this file using Mac UI instead of the `tar` command directly since the files are not signed, they will not run per new protections by Mac. Use `xattr -rd com.apple.quarantine <DIRECTORY>` to remove the quarantine. 
@@ -34,3 +35,5 @@ Then download the latest release from https://github.com/JetBrains/JetBrainsRunt
 On Idea, open up the Actions to find `Choose Boot Java Runtime for the IDE` and point to the extracted folder. It'll restart. If you face any problems, rename or delete the extracted folder, and IntelliJ will default to the bundled runtime. I noticed some improvements, but it's hard to be sure when you are not measuring them correctly, but it won't (probably) hurt to try. At [Resmo](https://www.resmo.com), we are using Kotlin, and IntelliJ is invaluable to us, and it feels great to have a responsive IDE to be productive.
 
 *Update: 24/12/2021:* If you are having problems with debug mode, please update to latest version of IDEA. 2021.3 works for me with occasional, non-blocking issues, but the experience is worth it.
+
+*Update: 13/02/2021:* There is a [new JBR 17 release](https://github.com/JetBrains/JetBrainsRuntime/releases/tag/jbr17_0_2b315.1). Also add `--add-opens=java.desktop/sun.lwawt.macosx=ALL-UNNAMED` to options if you are having problems with menus in MacOS.
