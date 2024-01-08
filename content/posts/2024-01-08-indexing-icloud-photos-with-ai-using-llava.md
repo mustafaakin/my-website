@@ -73,7 +73,7 @@ Some test results:
 
 ### Image 1: A flyover over the Sphere
 
-![2024-01-02-llava-pic1.jpeg](./img/2024-01-02-llava-pic1.jpeg)
+![2024-01-02-llava-pic1.jpeg](/img/2024-01-02-llava-pic1.jpeg)
 
 * **Prompt 1**: The image captures a unique aerial view of an airport with multiple large passenger jets parked on the runway. In addition to these planes, there are several cars and trucks visible around the area, likely serving various purposes such as transportation or maintenance for the aircraft.  The scene also features two golf courses located near the airport, one situated closer to the center of the image while another is more towards the left side. These courses provide a contrasting element to the busy airport environment and offer recreational opportunities for visitors in the area. The combination of planes, cars, trucks, and green golf courses creates an interesting snapshot of urban life with aviation infrastructure intertwined within it."
 
@@ -87,7 +87,7 @@ Some test results:
 
 ### Image 2: Belgrade The Temple of Saint Sava
 
-![2024-01-02-llava-pic2.jpeg](./img/F2024-01-02-llava-pic2.jpeg)
+![2024-01-02-llava-pic2.jpeg](/img/F2024-01-02-llava-pic2.jpeg)
 
 * **Prompt 1**: The image features a large, ornate church with two prominent towers and an impressive dome. There are several people walking around the area outside of the church, some carrying handbags or backpacks as they explore the surroundings. A few individuals can be seen standing near the entrance, while others walk along the sidewalk nearby. The overall atmosphere appears to be calm and serene, with visitors enjoying their time at this historic landmark. The church's architecture adds a sense of grandeur to the scene, making it an attractive destination for those who appreciate its beauty and historical significance."
 
@@ -101,7 +101,7 @@ Some test results:
 
 ### Image 3: Two luggage in hotel room
 
-![2024-01-02-llava-pic3.jpeg](./img/2024-01-02-llava-pic3.jpeg)
+![2024-01-02-llava-pic3.jpeg](/img/2024-01-02-llava-pic3.jpeg)
 
 * **Prompt 1**:  The image features two suitcases placed next to each other on the floor. One of them is larger, occupying most of the space in front of it, while the smaller one stands beside it. Both suitcases are wheeled bags with handles for easy transportation. They appear to be sitting side by side against a wall or corner, possibly waiting to be picked up or placed elsewhere. The overall scene suggests that someone might have recently arrived at their destination or is preparing for travel.
 
@@ -115,8 +115,7 @@ Some test results:
 
 ### Image 4: My daughter playing in sand with toys
 
-![2024-01-02-llava-pic4.jpeg](./img/2024-01-02-llava-pic4.jpeg)
-
+![2024-01-02-llava-pic4.jpeg](/img/2024-01-02-llava-pic4.jpeg)
 
 * **Prompt 1**:  The image features a young girl playing in the sand on a dirt road. She is surrounded by various toys, including several cars and trucks spread across the ground near her. A few other items can be seen as well: two bottles are located towards the right side of the scene, while another car and a spoon are placed closer to the center. The girl appears to be enjoying herself in this playful environment with her sandy creations around her.
 
