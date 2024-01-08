@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.121.2">
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:description" content="Over the years, although a tremendously valuable tool, IntelliJ IDEA started to feel slowed down, even on these latest M1 Pro machines. It&rsquo;s become frustrating. I disabled as many plugins as not needed. However, it&rsquo;s still not sufficient. I have discovered that you can improve the performance by switching IDEA to the latest JDK. JetBrains has its runtime with its patches for HiDPI supports, performance improvements, and bugfixes for running the IntelliJ family more smoothly." />
+  <meta name="twitter:title" content="Running IntelliJ IDEA with JDK 17 for Better Render Performance with Metal " />
+  <meta name="twitter:site" content="@mustafaakin" />
+  <meta name="twitter:creator" content="@mustafaakin" />
+  <title>Running IntelliJ IDEA with JDK 17 for Better Render Performance with Metal &middot; Mustafa Akın</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="../../css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="../../css/poole.css">
+  <link type="text/css" rel="stylesheet" href="../../css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="../../css/hyde.css">
+  
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="../../apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="../../favicon.ico">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href=""><h1>Mustafa Akın</h1></a>
+      <p class="lead">
+       Co-founder at @Resmo, previously Principal SRE at @Atlassian, Opsgenie 
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li><a href="">Home</a> </li>
+        <li><a href="https://github.com/mustafaakin/"> Github </a></li><li><a href="https://www.linkedin.com/in/mustafaakin/"> LinkedIn </a></li><li><a href="https://twitter.com/mustafaakin/"> Twitter </a></li>
+      </ul>
+    </nav>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>Running IntelliJ IDEA with JDK 17 for Better Render Performance with Metal</h1>
+  <time datetime=2021-12-08T00:00:00Z class="post-date">Wed, Dec 8, 2021</time>
+  <p>Over the years, although a tremendously valuable tool, IntelliJ IDEA started to feel slowed down, even on these latest M1 Pro machines. It&rsquo;s become frustrating. I disabled as many plugins as not needed. However, it&rsquo;s still not sufficient. I have discovered that you can improve the performance by switching IDEA to the latest JDK. <a href="https://github.com/JetBrains/JetBrainsRuntime">JetBrains has its runtime</a> with its patches for HiDPI supports, performance improvements, and bugfixes for running the IntelliJ family more smoothly. My issue probably relates to using an external 4K monitor in scaled mode, where <a href="https://youtrack.jetbrains.com/issue/JBR-745">many others have the same problem</a>, but the lags, unfortunately, persist in default display mode as well. I feel every new tool, not just IntelliJ, has some interaction lag, regardless of substantial improvements to hardware, but this is another discussion topic.</p>
+<p>On Mac, as I learned just now, <a href="https://youtrack.jetbrains.com/issue/JBR-745">java2d uses OpenGL to render</a>, which openGL has been deprecated on Mac in favor of <a href="https://developer.apple.com/metal/">Metal</a>. The latest JBR17 builds have Metal support which has substantial improvements. IntelliJ started an initiative <a href="https://blog.jetbrains.com/platform/2020/11/metal-for-intellij-platform/">JEP-382 - Project Lenai</a> to bring Metal to JDK for 2D rendering pipeline. And it&rsquo;s in <a href="https://openjdk.java.net/jeps/382">JDK 17 since b17</a>.</p>
+<p>Following flags needs to be added to your <code>vmoptions</code> because Java 17 <a href="https://www.infoq.com/news/2021/06/internals-encapsulated-jdk17/">changed encapsualtion</a> preventing access to internal modules. We also force Metal to be used. You can search the <code>Edit Custom VM Options</code> action.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl">  --illegal-access<span class="o">=</span>warn
+</span></span><span class="line"><span class="cl">  -Dsun.java2d.metal<span class="o">=</span><span class="nb">true</span>
+</span></span><span class="line"><span class="cl">  --add-opens<span class="o">=</span>java.desktop/java.awt.event<span class="o">=</span>ALL-UNNAMED
+</span></span><span class="line"><span class="cl">  --add-opens<span class="o">=</span>java.desktop/sun.font<span class="o">=</span>ALL-UNNAMED
+</span></span><span class="line"><span class="cl">  --add-opens<span class="o">=</span>java.desktop/java.awt<span class="o">=</span>ALL-UNNAMED
+</span></span><span class="line"><span class="cl">  --add-opens<span class="o">=</span>java.desktop/sun.awt<span class="o">=</span>ALL-UNNAMED
+</span></span><span class="line"><span class="cl">  --add-opens<span class="o">=</span>java.base/java.lang<span class="o">=</span>ALL-UNNAMED
+</span></span><span class="line"><span class="cl">  --add-opens<span class="o">=</span>java.base/java.util<span class="o">=</span>ALL-UNNAMED
+</span></span><span class="line"><span class="cl">  --add-opens<span class="o">=</span>java.desktop/javax.swing<span class="o">=</span>ALL-UNNAMED
+</span></span><span class="line"><span class="cl">  --add-opens<span class="o">=</span>java.desktop/sun.swing<span class="o">=</span>ALL-UNNAMED
+</span></span><span class="line"><span class="cl">  --add-opens<span class="o">=</span>java.desktop/javax.swing.plaf.basic<span class="o">=</span>ALL-UNNAMED
+</span></span><span class="line"><span class="cl">  --add-opens<span class="o">=</span>java.desktop/java.awt.peer<span class="o">=</span>ALL-UNNAMED
+</span></span><span class="line"><span class="cl">  --add-opens<span class="o">=</span>java.desktop/javax.swing.text.html<span class="o">=</span>ALL-UNNAMED
+</span></span><span class="line"><span class="cl">  --add-exports<span class="o">=</span>java.desktop/sun.font<span class="o">=</span>ALL-UNNAMED
+</span></span><span class="line"><span class="cl">  --add-exports<span class="o">=</span>java.desktop/com.apple.eawt<span class="o">=</span>ALL-UNNAMED
+</span></span><span class="line"><span class="cl">  --add-exports<span class="o">=</span>java.desktop/com.apple.laf<span class="o">=</span>ALL-UNNAMED
+</span></span><span class="line"><span class="cl">  --add-exports<span class="o">=</span>java.desktop/com.apple.eawt.event<span class="o">=</span>ALL-UNNAMED
+</span></span><span class="line"><span class="cl">  --add-opens<span class="o">=</span>java.desktop/sun.lwawt.macosx<span class="o">=</span>ALL-UNNAMED
+</span></span></code></pre></div><p>Then download the latest release from <a href="https://github.com/JetBrains/JetBrainsRuntime/releases">https://github.com/JetBrains/JetBrainsRuntime/releases</a>. Beware of your platform. I have downloaded file <a href="https://cache-redirector.jetbrains.com/intellij-jbr/jbr_jcef-17_0_1-osx-aarch64-b164.8.tar.gz">jbr_jcef-17_0_1-osx-aarch64-b164.8.tar.gz</a> for an M1 Mac, which is an <code>osx-aarch64</code> platform. Note that if you untar this file using Mac UI instead of the <code>tar</code> command directly since the files are not signed, they will not run per new protections by Mac. Use <code>xattr -rd com.apple.quarantine &lt;DIRECTORY&gt;</code> to remove the quarantine.</p>
+<p>On Idea, open up the Actions to find <code>Choose Boot Java Runtime for the IDE</code> and point to the extracted folder. It&rsquo;ll restart. If you face any problems, rename or delete the extracted folder, and IntelliJ will default to the bundled runtime. I noticed some improvements, but it&rsquo;s hard to be sure when you are not measuring them correctly, but it won&rsquo;t (probably) hurt to try. At <a href="https://www.resmo.com">Resmo</a>, we are using Kotlin, and IntelliJ is invaluable to us, and it feels great to have a responsive IDE to be productive.</p>
+<p><em>Update: 24/12/2021:</em> If you are having problems with debug mode, please update to latest version of IDEA. 2021.3 works for me with occasional, non-blocking issues, but the experience is worth it.</p>
+<p><em>Update: 13/02/2021:</em> There is a <a href="https://github.com/JetBrains/JetBrainsRuntime/releases/tag/jbr17_0_2b315.1">new JBR 17 release</a>. Also add <code>--add-opens=java.desktop/sun.lwawt.macosx=ALL-UNNAMED</code> to options if you are having problems with menus in MacOS.</p>
+
+</div>
+
+<h2>Comments</h2>
+<div id="disqus_thread"></div>
+<script>
+    window.disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "mustafaakindev" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </main>
+
+    
+      
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-163369693-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+    
+  </body>
+</html>

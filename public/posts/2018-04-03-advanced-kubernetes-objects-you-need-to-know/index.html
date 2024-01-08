@@ -3,14 +3,14 @@
 <head>
   <link href="https://gmpg.org/xfn/11" rel="profile">
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <meta name="generator" content="Hugo 0.69.2" />
+  <meta name="generator" content="Hugo 0.121.2">
 
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:description" content="Originally appeared on Opsgenie Engineering Blog
- Kubernetes adoption is increasing each day. People are transforming both development and production environments to container-based deployments, and they are making use of Kubernetes to handle the operations more elegantly. Ability to do one-click zero downtime rolling deployment updates was a dream or required too many interventions by an operator or a custom in-house applications where they were heavily dependent on the specific platforms." />
+Kubernetes adoption is increasing each day. People are transforming both development and production environments to container-based deployments, and they are making use of Kubernetes to handle the operations more elegantly. Ability to do one-click zero downtime rolling deployment updates was a dream or required too many interventions by an operator or a custom in-house applications where they were heavily dependent on the specific platforms." />
   <meta name="twitter:title" content="Advanced Kubernetes Objects You Need to Know " />
   <meta name="twitter:site" content="@mustafaakin" />
   <meta name="twitter:creator" content="@mustafaakin" />
@@ -38,7 +38,7 @@
     <div class="sidebar-about">
       <a href=""><h1>Mustafa Akın</h1></a>
       <p class="lead">
-       SRE Architect @Atlassian Opsgenie, PhD Student @Bilkent University CS 
+       Co-founder at @Resmo, previously Principal SRE at @Atlassian, Opsgenie 
       </p>
     </div>
 
@@ -74,146 +74,146 @@
 <p>The ability to intercept the objects before saving them allows enforcing some rules. For instance, you might want to let only a single domain of Docker images to pull, or you might enforce a naming scheme for objects, prevent some labels from being used, or add sidecar containers to each of your containers. The main reason why admission controllers are useful is that you can continue interacting with API server with proper credentials, and you do not have to create an additional proxy layer or a handler, and you maintain a fewer number of and smaller components, and it becomes easier to modify and swap them.</p>
 <h3 id="resourcequota">ResourceQuota</h3>
 <p>As you might already know, you can specify pods’ CPU and Memory requests and limits, and as Kubernetes already knows the pod placements, it can properly place your pods into such places that your requests are fulfilled. When a pod has memory requests set, your pod’s QoS (Quality of Service) class is <strong>Guaranteed</strong>, and when your limit is higher than requests, QoS class is <strong>Burstable</strong>. In other words, your pod gets at least the resources it desires, if there is space. However, limiting the total requests by namespace can be useful if you have many namespaces used by many projects or people so that namespaces get their fair shares. This is where <em>ResourceQuota</em> helps, and it can be defined as a simple YAML file as follows:</p>
-<div class="highlight"><pre class="chroma"><code class="language-yaml" data-lang="yaml"><span class="k">apiVersion</span><span class="p">:</span><span class="w"> </span>v1<span class="w">  
-</span><span class="w"></span><span class="k">kind</span><span class="p">:</span><span class="w"> </span>ResourceQuota<span class="w">  
-</span><span class="w"></span><span class="k">metadata</span><span class="p">:</span><span class="w">  
-</span><span class="w">  </span><span class="k">name</span><span class="p">:</span><span class="w"> </span>my-cheap-namespace<span class="w">  
-</span><span class="w"></span><span class="k">spec</span><span class="p">:</span><span class="w">  
-</span><span class="w">  </span><span class="k">hard</span><span class="p">:</span><span class="w">  
-</span><span class="w">    </span><span class="k">requests.cpu</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;4&#34;</span><span class="w">  
-</span><span class="w">    </span><span class="k">requests.memory</span><span class="p">:</span><span class="w"> </span>8Gi<span class="w">  
-</span><span class="w">    </span><span class="k">limits.cpu</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;16&#34;</span><span class="w">  
-</span><span class="w">    </span><span class="k">limits.memory</span><span class="p">:</span><span class="w"> </span>16Gi<span class="w">
-</span></code></pre></div><p>You can also limit the number of Kubernetes objects that a namespace can use. You can limit the total number of Pods to avoid scheduling overheads, the number of load balancers (which can be tied to a load balancer with an actual cost in a cloud provider, such as AWS Network Load Balancer) or the number of Persistent Volume Claims as they can be costly as well. An example configuration is as follows:</p>
-<div class="highlight"><pre class="chroma"><code class="language-yaml" data-lang="yaml"><span class="k">apiVersion</span><span class="p">:</span><span class="w"> </span>v1<span class="w">  
-</span><span class="w"></span><span class="k">kind</span><span class="p">:</span><span class="w"> </span>ResourceQuota<span class="w">  
-</span><span class="w"></span><span class="k">metadata</span><span class="p">:</span><span class="w">  
-</span><span class="w">  </span><span class="k">name</span><span class="p">:</span><span class="w"> </span>object-quota-demo<span class="w">  
-</span><span class="w"></span><span class="k">spec</span><span class="p">:</span><span class="w">  
-</span><span class="w">  </span><span class="k">hard</span><span class="p">:</span><span class="w">  
-</span><span class="w">    </span><span class="k">persistentvolumeclaims</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;4&#34;</span><span class="w">  
-</span><span class="w">    </span><span class="k">services.loadbalancers</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;3&#34;</span><span class="w">  
-</span><span class="w">    </span><span class="k">services.nodeports</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;1&#34;</span><span class="w">
-</span></code></pre></div><h3 id="priorityclass">PriorityClass</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">ResourceQuota  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">my-cheap-namespace  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">hard</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">requests.cpu</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;4&#34;</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">requests.memory</span><span class="p">:</span><span class="w"> </span><span class="l">8Gi  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">limits.cpu</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;16&#34;</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">limits.memory</span><span class="p">:</span><span class="w"> </span><span class="l">16Gi</span><span class="w">
+</span></span></span></code></pre></div><p>You can also limit the number of Kubernetes objects that a namespace can use. You can limit the total number of Pods to avoid scheduling overheads, the number of load balancers (which can be tied to a load balancer with an actual cost in a cloud provider, such as AWS Network Load Balancer) or the number of Persistent Volume Claims as they can be costly as well. An example configuration is as follows:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">ResourceQuota  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">object-quota-demo  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">hard</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">persistentvolumeclaims</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;4&#34;</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">services.loadbalancers</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;3&#34;</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">services.nodeports</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;1&#34;</span><span class="w">
+</span></span></span></code></pre></div><h3 id="priorityclass">PriorityClass</h3>
 <p>If you are running high-intensity workloads, it might be common for you to be out of space from time to time. Sure, you might add new worker kubelets with the auto-scalers. However, it might be too late. If some of your containers can tolerate eviction, such as background tasks that are not directly customer facing, there is no reason that they cannot be reduced to make room for your new deployment. <em>PriorityClass</em> also allows the higher priority pods to be scheduled earlier than the lower priority ones.</p>
 <p>Note that, <em>PodDistruptionBudgets</em> try to guarantee a number or percentage of pods running at a time. However, if a high priority pod is submitted to the scheduler, the lower priority pod with a PodDistruptionBudget might not be guaranteed, and more than desired number of pods might be deleted.</p>
 <p>A <em>PriorityClass</em> is as defined as follows.</p>
-<div class="highlight"><pre class="chroma"><code class="language-yaml" data-lang="yaml"><span class="k">apiVersion</span><span class="p">:</span><span class="w"> </span>scheduling.k8s.io/v1alpha1<span class="w">  
-</span><span class="w"></span><span class="k">kind</span><span class="p">:</span><span class="w"> </span>PriorityClass<span class="w">  
-</span><span class="w"></span><span class="k">metadata</span><span class="p">:</span><span class="w">  
-</span><span class="w">  </span><span class="k">name</span><span class="p">:</span><span class="w"> </span>high-priority<span class="w">  
-</span><span class="w"></span><span class="k">value</span><span class="p">:</span><span class="w"> </span><span class="m">1000000</span><span class="w">  
-</span><span class="w"></span><span class="k">globalDefault</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w">  
-</span><span class="w"></span><span class="k">description</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;Wow this is very much you should have a good reason&#34;</span><span class="w">
-</span></code></pre></div><p>And you use it in a <em>Pod</em> like the following:</p>
-<div class="highlight"><pre class="chroma"><code class="language-yaml" data-lang="yaml"><span class="k">apiVersion</span><span class="p">:</span><span class="w"> </span>v1<span class="w">  
-</span><span class="w"></span><span class="k">kind</span><span class="p">:</span><span class="w"> </span>Pod<span class="w">  
-</span><span class="w"></span><span class="k">metadata</span><span class="p">:</span><span class="w">  
-</span><span class="w">  </span><span class="k">name</span><span class="p">:</span><span class="w"> </span>my-very-important-container<span class="w">  
-</span><span class="w">  </span><span class="k">labels</span><span class="p">:</span><span class="w">  
-</span><span class="w">    </span><span class="k">important</span><span class="p">:</span><span class="w">   
-</span><span class="w"></span><span class="k">spec</span><span class="p">:</span><span class="w">  
-</span><span class="w">  </span><span class="k">containers</span><span class="p">:</span><span class="w">  
-</span><span class="w">  </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>find-the-answer<span class="w">  
-</span><span class="w">    </span><span class="k">image</span><span class="p">:</span><span class="w"> </span>return42<span class="p">:</span>latest<span class="w">  
-</span><span class="w">  </span><span class="k">priorityClassName</span><span class="p">:</span><span class="w"> </span>high-priority<span class="w">
-</span></code></pre></div><h3 id="limitrange">LimitRange</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">scheduling.k8s.io/v1alpha1  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">PriorityClass  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">high-priority  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="m">1000000</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">globalDefault</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;Wow this is very much you should have a good reason&#34;</span><span class="w">
+</span></span></span></code></pre></div><p>And you use it in a <em>Pod</em> like the following:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">Pod  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">my-very-important-container  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">labels</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">important</span><span class="p">:</span><span class="w">   
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">containers</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">find-the-answer  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">return42:latest  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">priorityClassName</span><span class="p">:</span><span class="w"> </span><span class="l">high-priority</span><span class="w">
+</span></span></span></code></pre></div><h3 id="limitrange">LimitRange</h3>
 <p>If you forget specifying CPU &amp; Memory requests and limits for your pods, they will be in <strong>BestEffort</strong> QoS class. Specifying default limits and requests might be helpful for beginners of your Kubernetes adaptation. Limiting container resource usage is a good practice because rogue pods might deter the other ones. You can define a <em>LimitRange</em> as follows:</p>
-<div class="highlight"><pre class="chroma"><code class="language-yaml" data-lang="yaml"><span class="k">apiVersion</span><span class="p">:</span><span class="w"> </span>v1<span class="w">  
-</span><span class="w"></span><span class="k">kind</span><span class="p">:</span><span class="w"> </span>LimitRange<span class="w">  
-</span><span class="w"></span><span class="k">metadata</span><span class="p">:</span><span class="w">  
-</span><span class="w">  </span><span class="k">name</span><span class="p">:</span><span class="w"> </span>cpu-limit-range<span class="w">  
-</span><span class="w"></span><span class="k">spec</span><span class="p">:</span><span class="w">  
-</span><span class="w">  </span><span class="k">limits</span><span class="p">:</span><span class="w">  
-</span><span class="w">  </span>- <span class="k">default</span><span class="p">:</span><span class="w">  
-</span><span class="w">      </span><span class="k">cpu</span><span class="p">:</span><span class="w"> </span><span class="m">1</span><span class="w">  
-</span><span class="w">    </span><span class="k">defaultRequest</span><span class="p">:</span><span class="w">  
-</span><span class="w">      </span><span class="k">cpu</span><span class="p">:</span><span class="w"> </span><span class="m">0.5</span><span class="w">  
-</span><span class="w">    </span><span class="k">type</span><span class="p">:</span><span class="w"> </span>Container<span class="w">
-</span></code></pre></div><h3 id="podsecuritypolicy">PodSecurityPolicy</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">v1  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">LimitRange  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">cpu-limit-range  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">limits</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">default</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="m">1</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">defaultRequest</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="m">0.5</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l">Container</span><span class="w">
+</span></span></span></code></pre></div><h3 id="podsecuritypolicy">PodSecurityPolicy</h3>
 <p>You might sometimes want to run untrusted pods and desire to secure your Kubernetes cluster against harmful intent as much as possible. Even if you are running trusted pools, your applications or the software you use might have some security vulnerabilities and might be exploited if they are facing the public networks.</p>
 <p>On the other hand, you might have some trusted applications that might need extended privileges, and you would like to grant them new capabilities that generally regular containers do not possess. Containers might want to modify protected kernel variables and features, and would like some advanced system calls.</p>
 <p>While you could do the above, You can modify both grants and restrictions in a centralized manner with Kubernetes. This is where <em>PodSecurityPolicy</em> is helpful. You can configure the SELinux and AppArmor rules, drop and add Linux capabilities, modify namespace sharing for PID, network, IPC, enforce the user and group of the containers and even make the container read-only.</p>
 <p>The below is an example of a security policy which is a restrictive policy, but it also allows some of the sysctl’s to be configured.</p>
-<div class="highlight"><pre class="chroma"><code class="language-yaml" data-lang="yaml"><span class="k">apiVersion</span><span class="p">:</span><span class="w"> </span>policy/v1beta1<span class="w">  
-</span><span class="w"></span><span class="k">kind</span><span class="p">:</span><span class="w"> </span>PodSecurityPolicy<span class="w">  
-</span><span class="w"></span><span class="k">metadata</span><span class="p">:</span><span class="w">  
-</span><span class="w">  </span><span class="k">name</span><span class="p">:</span><span class="w"> </span>restricted<span class="w">  
-</span><span class="w">  </span><span class="k">Annotations</span><span class="p">:</span><span class="w">  
-</span><span class="w"></span><span class="k">security.alpha.kubernetes.io/sysctls</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;net.ipv4.route.\*,kernel.msg\*&#39;</span><span class="w">  
-</span><span class="w">    </span><span class="k">apparmor.security.beta.kubernetes.io/allowedProfileNames</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;runtime/default&#39;</span><span class="w">  
-</span><span class="w">    </span><span class="k">apparmor.security.beta.kubernetes.io/defaultProfileName</span><span class="p">:</span><span class="w">  </span><span class="s1">&#39;runtime/default&#39;</span><span class="w">  
-</span><span class="w"></span><span class="k">spec</span><span class="p">:</span><span class="w">  
-</span><span class="w">  </span><span class="k">privileged</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w">  
-</span><span class="w">  </span><span class="k">allowPrivilegeEscalation</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w">  
-</span><span class="w">  </span><span class="k">requiredDropCapabilities</span><span class="p">:</span><span class="w">  
-</span><span class="w">    </span>- ALL<span class="w">  
-</span><span class="w">  </span><span class="k">volumes</span><span class="p">:</span><span class="w">  
-</span><span class="w">    </span>- <span class="s1">&#39;configMap&#39;</span><span class="w">  
-</span><span class="w">    </span>- <span class="s1">&#39;emptyDir&#39;</span><span class="w">  
-</span><span class="w">    </span>- <span class="s1">&#39;secret&#39;</span><span class="w">  
-</span><span class="w">    </span>- <span class="s1">&#39;persistentVolumeClaim&#39;</span><span class="w">  
-</span><span class="w">  </span><span class="k">hostNetwork</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w">  
-</span><span class="w">  </span><span class="k">hostIPC</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w">  
-</span><span class="w">  </span><span class="k">hostPID</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w">  
-</span><span class="w">  </span><span class="k">runAsUser</span><span class="p">:</span><span class="w">  
-</span><span class="w">    </span><span class="k">rule</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;MustRunAsNonRoot&#39;</span><span class="w">  
-</span><span class="w">  </span><span class="k">seLinux</span><span class="p">:</span><span class="w">  
-</span><span class="w">    </span><span class="k">rule</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;RunAsAny&#39;</span><span class="w">  
-</span><span class="w">  </span><span class="k">supplementalGroups</span><span class="p">:</span><span class="w">  
-</span><span class="w">    </span><span class="k">rule</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;MustRunAs&#39;</span><span class="w">  
-</span><span class="w">    </span><span class="k">ranges</span><span class="p">:</span><span class="w">  
-</span><span class="w">      </span>- <span class="k">min</span><span class="p">:</span><span class="w"> </span><span class="m">1</span><span class="w">  
-</span><span class="w">        </span><span class="k">max</span><span class="p">:</span><span class="w"> </span><span class="m">65535</span><span class="w">  
-</span><span class="w">  </span><span class="k">fsGroup</span><span class="p">:</span><span class="w">  
-</span><span class="w">    </span><span class="k">rule</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;MustRunAs&#39;</span><span class="w">  
-</span><span class="w">    </span><span class="k">ranges</span><span class="p">:</span><span class="w">  
-</span><span class="w">      </span>- <span class="k">min</span><span class="p">:</span><span class="w"> </span><span class="m">1</span><span class="w">  
-</span><span class="w">        </span><span class="k">max</span><span class="p">:</span><span class="w"> </span><span class="m">65535</span><span class="w">  
-</span><span class="w">  </span><span class="k">readOnlyRootFilesystem</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w">
-</span></code></pre></div><h3 id="imagepolicywebhook-and-imagereview">ImagePolicyWebhook and ImageReview</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">policy/v1beta1  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">PodSecurityPolicy  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">restricted  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">Annotations</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">security.alpha.kubernetes.io/sysctls</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;net.ipv4.route.\*,kernel.msg\*&#39;</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">apparmor.security.beta.kubernetes.io/allowedProfileNames</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;runtime/default&#39;</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">apparmor.security.beta.kubernetes.io/defaultProfileName</span><span class="p">:</span><span class="w">  </span><span class="s1">&#39;runtime/default&#39;</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">privileged</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">allowPrivilegeEscalation</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">requiredDropCapabilities</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="l">ALL  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">volumes</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="s1">&#39;configMap&#39;</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="s1">&#39;emptyDir&#39;</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="s1">&#39;secret&#39;</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="s1">&#39;persistentVolumeClaim&#39;</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">hostNetwork</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">hostIPC</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">hostPID</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">runAsUser</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">rule</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;MustRunAsNonRoot&#39;</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">seLinux</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">rule</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;RunAsAny&#39;</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">supplementalGroups</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">rule</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;MustRunAs&#39;</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">ranges</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">min</span><span class="p">:</span><span class="w"> </span><span class="m">1</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">max</span><span class="p">:</span><span class="w"> </span><span class="m">65535</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">fsGroup</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">rule</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;MustRunAs&#39;</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">ranges</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">min</span><span class="p">:</span><span class="w"> </span><span class="m">1</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">max</span><span class="p">:</span><span class="w"> </span><span class="m">65535</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">readOnlyRootFilesystem</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w">
+</span></span></span></code></pre></div><h3 id="imagepolicywebhook-and-imagereview">ImagePolicyWebhook and ImageReview</h3>
 <p>For a safe and controlled deployment, it is desirable to specify a policy for the images that can be used as containers. Running arbitrary containers on production might lead to some undesired situations if you are not careful. A classical cluster admin would configure HTTP proxy or SSL termination for all the nodes, and implement a custom firewall that will reject requests for unverified domains or paths. However, it is hard and prone to error. Good news is that it can be quickly done in Kubernetes with <em>ImagePolicyWebhook</em>. As you can understand from the name, Kubernetes API can perform a webhook to an external service to validate your image pull request. The external API is supposed to check the images and additional information like annotations and namespace and make a decision and return success or failure to the Kubernetes API server. The server can also return a reason string so that the user can be informed why a particular image was rejected. The responses can also be cached for a configurable time to increase the performance. An example <em>ImageReview</em> object passed to the configured server can be seen as below:</p>
-<div class="highlight"><pre class="chroma"><code class="language-json" data-lang="json"><span class="p">{</span>    
-  <span class="nt">&#34;apiVersion&#34;</span><span class="p">:</span><span class="s2">&#34;imagepolicy.k8s.io/v1alpha1&#34;</span><span class="p">,</span>  
-  <span class="nt">&#34;kind&#34;</span><span class="p">:</span><span class="s2">&#34;ImageReview&#34;</span><span class="p">,</span>  
-  <span class="nt">&#34;spec&#34;</span><span class="p">:{</span>    
-    <span class="nt">&#34;containers&#34;</span><span class="p">:[</span>    
-      <span class="p">{</span>    
-        <span class="nt">&#34;image&#34;</span><span class="p">:</span><span class="s2">&#34;myrepo/myimage:v1&#34;</span>  
-      <span class="p">},</span>  
-      <span class="p">{</span>    
-        <span class="nt">&#34;image&#34;</span><span class="p">:</span><span class="s2">&#34;myrepo/myimage@sha256:alongstring&#34;</span>  
-      <span class="p">}</span>  
-    <span class="p">],</span>  
-    <span class="nt">&#34;annotations&#34;</span><span class="p">:[</span>    
-      <span class="s2">&#34;mycluster.image-policy.k8s.io/ticket-1234&#34;</span><span class="err">:</span><span class="s2">&#34;break-glass&#34;</span>  
-    <span class="p">],</span>  
-    <span class="nt">&#34;namespace&#34;</span><span class="p">:</span><span class="s2">&#34;mynamespace&#34;</span>  
-  <span class="p">}</span>  
-<span class="p">}</span>
-</code></pre></div><h3 id="validatingadmissionwebhook-and-mutatingadmissionwebhook">ValidatingAdmissionWebhook and MutatingAdmissionWebhook</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span>    
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;apiVersion&#34;</span><span class="p">:</span><span class="s2">&#34;imagepolicy.k8s.io/v1alpha1&#34;</span><span class="p">,</span>  
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;kind&#34;</span><span class="p">:</span><span class="s2">&#34;ImageReview&#34;</span><span class="p">,</span>  
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;spec&#34;</span><span class="p">:{</span>    
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;containers&#34;</span><span class="p">:[</span>    
+</span></span><span class="line"><span class="cl">      <span class="p">{</span>    
+</span></span><span class="line"><span class="cl">        <span class="nt">&#34;image&#34;</span><span class="p">:</span><span class="s2">&#34;myrepo/myimage:v1&#34;</span>  
+</span></span><span class="line"><span class="cl">      <span class="p">},</span>  
+</span></span><span class="line"><span class="cl">      <span class="p">{</span>    
+</span></span><span class="line"><span class="cl">        <span class="nt">&#34;image&#34;</span><span class="p">:</span><span class="s2">&#34;myrepo/myimage@sha256:alongstring&#34;</span>  
+</span></span><span class="line"><span class="cl">      <span class="p">}</span>  
+</span></span><span class="line"><span class="cl">    <span class="p">],</span>  
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;annotations&#34;</span><span class="p">:[</span>    
+</span></span><span class="line"><span class="cl">      <span class="s2">&#34;mycluster.image-policy.k8s.io/ticket-1234&#34;</span><span class="err">:</span><span class="s2">&#34;break-glass&#34;</span>  
+</span></span><span class="line"><span class="cl">    <span class="p">],</span>  
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;namespace&#34;</span><span class="p">:</span><span class="s2">&#34;mynamespace&#34;</span>  
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>  
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h3 id="validatingadmissionwebhook-and-mutatingadmissionwebhook">ValidatingAdmissionWebhook and MutatingAdmissionWebhook</h3>
 <p>Although you can use the default Kubernetes Admission controllers, which can enforce LimitRange, ResourceQuota or different known objects, you might have some non-trivial requirements and want to implement logic for such purposes. This is where ValidatingAdmissionWebhook comes to help, and as similar to ImagePolicyWebhook, it passes Kubernetes object requests you configure to the endpoint of your choice, and you are free to accept or reject the request. You can also configure which API calls you are interested, so you are only passed the ones you desire. In the below example, a ValidatingWebhookConfiguration is given with a single webhook which validates only the pods <em>CREATE</em> requests. You can configure any Kubernetes object to be included for verification.</p>
-<div class="highlight"><pre class="chroma"><code class="language-yaml" data-lang="yaml"><span class="k">apiVersion</span><span class="p">:</span><span class="w"> </span>admissionregistration.k8s.io/v1beta1<span class="w">  
-</span><span class="w"></span><span class="k">kind</span><span class="p">:</span><span class="w"> </span>ValidatingWebhookConfiguration<span class="w">  
-</span><span class="w"></span><span class="k">metadata</span><span class="p">:</span><span class="w">  
-</span><span class="w">  </span><span class="k">name</span><span class="p">:</span><span class="w"> </span>validate-your-containers<span class="w">  
-</span><span class="w"></span><span class="k">webhooks</span><span class="p">:</span><span class="w">  
-</span><span class="w"></span><span class="k">\- name</span><span class="p">:</span><span class="w"> </span>verify-pod-creation<span class="w">  
-</span><span class="w">  </span><span class="k">rules</span><span class="p">:</span><span class="w">  
-</span><span class="w">  </span>- <span class="k">apiGroups</span><span class="p">:</span><span class="w">  
-</span><span class="w">    </span>- <span class="s2">&#34;&#34;</span><span class="w">  
-</span><span class="w">    </span><span class="k">apiVersions</span><span class="p">:</span><span class="w">  
-</span><span class="w">    </span>- v1<span class="w">  
-</span><span class="w">    </span><span class="k">operations</span><span class="p">:</span><span class="w">  
-</span><span class="w">    </span>- CREATE<span class="w">  
-</span><span class="w">    </span><span class="k">resources</span><span class="p">:</span><span class="w">  
-</span><span class="w">    </span>- pods<span class="w">  
-</span><span class="w">  </span><span class="k">clientConfig</span><span class="p">:</span><span class="w">  
-</span><span class="w">    </span><span class="k">service</span><span class="p">:</span><span class="w">  
-</span><span class="w">      </span><span class="k">namespace</span><span class="p">:</span><span class="w"> </span>default<span class="w">  
-</span><span class="w">      </span><span class="k">name</span><span class="p">:</span><span class="w"> </span>name<span class="w">  
-</span><span class="w">    </span><span class="k">caBundle</span><span class="p">:</span><span class="w"> </span>&lt;pem-encoded&gt;<span class="w">
-</span></code></pre></div><p><em>MutatingAdmissionWebhook</em> is similar to <em>ValidatingWebhookConfiguration,</em> you are again passed the Kubernetes object that is being created, however, instead of rejecting or accepting, your endpoint is supposed to modify the original Kubernetes object and return the modified request. You could use it to change the environment variables of a pod, append a default label, set a namespace if the user forgot to do so. Any custom corporate requirements can be done here!</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">admissionregistration.k8s.io/v1beta1  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">ValidatingWebhookConfiguration  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">validate-your-containers  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">webhooks</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">\- name</span><span class="p">:</span><span class="w"> </span><span class="l">verify-pod-creation  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">rules</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">apiGroups</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="s2">&#34;&#34;</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">apiVersions</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="l">v1  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">operations</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="l">CREATE  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">resources</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="l">pods  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">clientConfig</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">service</span><span class="p">:</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l">default  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">name  </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">caBundle</span><span class="p">:</span><span class="w"> </span><span class="l">&lt;pem-encoded&gt;</span><span class="w">
+</span></span></span></code></pre></div><p><em>MutatingAdmissionWebhook</em> is similar to <em>ValidatingWebhookConfiguration,</em> you are again passed the Kubernetes object that is being created, however, instead of rejecting or accepting, your endpoint is supposed to modify the original Kubernetes object and return the modified request. You could use it to change the environment variables of a pod, append a default label, set a namespace if the user forgot to do so. Any custom corporate requirements can be done here!</p>
 <h3 id="available-admission-controllers">Available Admission Controllers</h3>
 <p>In addition to above admission controllers, there are various ones you can use, and they are summarized as follows (not including deprecated ones):</p>
 <ul>
@@ -252,8 +252,8 @@
 
 <h2>Comments</h2>
 <div id="disqus_thread"></div>
-<script type="application/javascript">
-    var disqus_config = function () {
+<script>
+    window.disqus_config = function () {
     
     
     
@@ -275,7 +275,7 @@
 
     
       
-<script type="application/javascript">
+<script>
 var doNotTrack = false;
 if (!doNotTrack) {
 	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;

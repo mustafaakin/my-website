@@ -3,14 +3,14 @@
 <head>
   <link href="https://gmpg.org/xfn/11" rel="profile">
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <meta name="generator" content="Hugo 0.69.2" />
+  <meta name="generator" content="Hugo 0.121.2">
 
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:description" content="Originally appeared on Opsgenie Engineering Blog
- We have been using AWS Lambda for over two years at OpsGenie. Our primary programming language for our Lambda functions is Java. Although Java tends to use more memory compared to other languages such as Node.js and Python, we still allocate more memory than we need for our functions. There are two primary reasons. Sometimes depending on the traffic, there can be unexpected spikes in usage." />
+We have been using AWS Lambda for over two years at OpsGenie. Our primary programming language for our Lambda functions is Java. Although Java tends to use more memory compared to other languages such as Node.js and Python, we still allocate more memory than we need for our functions. There are two primary reasons. Sometimes depending on the traffic, there can be unexpected spikes in usage." />
   <meta name="twitter:title" content="How does proportional CPU allocation work with AWS Lambda? " />
   <meta name="twitter:site" content="@mustafaakin" />
   <meta name="twitter:creator" content="@mustafaakin" />
@@ -38,7 +38,7 @@
     <div class="sidebar-about">
       <a href=""><h1>Mustafa Akın</h1></a>
       <p class="lead">
-       SRE Architect @Atlassian Opsgenie, PhD Student @Bilkent University CS 
+       Co-founder at @Resmo, previously Principal SRE at @Atlassian, Opsgenie 
       </p>
     </div>
 
@@ -66,49 +66,49 @@
 <p>To better understand how it works, we will use a Docker image with a single task doing some useless encryption that takes significant amount of time. At the end, you will be able to see how the runtime performance is affected by the throttling constraints.</p>
 <p>In detail, the example code is running bcrypt algorithm on a random set of bytes for a defined number of iterations in each batch. Since each invocation takes microseconds of time, we will run the algorithm for a number of iterations to get a less noisy result. We will use a <strong>c5.xlarge</strong> EC2 instance, which has 2 CPUs and install Docker with the test image we created. To improve the results and reduce the errors, we will run the code for many iterations. Thanks to Golang, Docker image is just 2.5MB, meaning you can easily play with it in your own environments.</p>
 <p>Running it without any restriction, it gives the following output for batch size of 50 and 5 iterations:</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">$ docker run -ti mustafaakin/bench -batch <span class="m">50</span> -iterations <span class="m">5</span>
-
-<span class="o">{</span>  
- <span class="s2">&#34;Durations&#34;</span>: <span class="o">[</span>  
-  52,  
-  52,  
-  52,  
-  52,  
-  <span class="m">52</span>  
- <span class="o">]</span>,  
- <span class="s2">&#34;Mean&#34;</span>: 52,  
- <span class="s2">&#34;Variance&#34;</span>: 0,  
- <span class="s2">&#34;StdDev&#34;</span>: 0,  
- <span class="s2">&#34;CoefficientOfVariation&#34;</span>: 0,  
- <span class="s2">&#34;Max&#34;</span>: 52,  
- <span class="s2">&#34;Min&#34;</span>: 52,  
- <span class="s2">&#34;NoOfCores&#34;</span>: <span class="m">2</span>  
-<span class="o">}</span>
-</code></pre></div><p>Each iteration elapsed 52 milliseconds, and there is no variance in the execution. Docker has two flags, which sets the scheduler period and the allowed quota for a given function by assigning the limits to the Cgroup of the running container:</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">$ docker run --help
-
- — cpu-period int Limit CPU CFS <span class="o">(</span>Completely Fair Scheduler<span class="o">)</span> period  
- — cpu-quota  int Limit CPU CFS <span class="o">(</span>Completely Fair Scheduler<span class="o">)</span> quota
-</code></pre></div><p>If the values are set, a running container is only allowed for running for <strong>quota</strong> microseconds in the given <strong>period.</strong> So, if you want 10% utilization, you can say your function has a quota of 1 millisecond for each 10 milliseconds. Therefore, if it consumes 1 millisecond of CPU, it has to wait for another 9 milliseconds to be able to execute again. The periods are in microseconds and an example invocation can be seen as follows:</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">$ docker run — cpu-period<span class="o">=</span><span class="m">10000</span> — cpu-quota<span class="o">=</span><span class="m">1000</span> -ti mustafaakin/bench -batch <span class="m">50</span> -iterations <span class="m">5</span>
-
-<span class="o">{</span>  
- <span class="s2">&#34;Durations&#34;</span>: <span class="o">[</span>  
-  520,  
-  556,  
-  529,  
-  520,  
-  <span class="m">520</span>  
- <span class="o">]</span>,  
- <span class="s2">&#34;Mean&#34;</span>: 529,  
- <span class="s2">&#34;Variance&#34;</span>: 194.4,  
- <span class="s2">&#34;StdDev&#34;</span>: 13.94,  
- <span class="s2">&#34;CoefficientOfVariation&#34;</span>: 0.026,  
- <span class="s2">&#34;Max&#34;</span>: 556,  
- <span class="s2">&#34;Min&#34;</span>: 520,  
- <span class="s2">&#34;NoOfCores&#34;</span>: <span class="m">2</span>  
-<span class="o">}</span>
-</code></pre></div><p>What happens in multi-core case? Even if you have 2 CPUs and some code that can work in parallel, when you set the same period and quota as above, you will still get the same performance. Because, if your process runs for 10 seconds and utilizes all of the 2 CPUs, your process consumes 20 seconds of CPU time.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ docker run -ti mustafaakin/bench -batch <span class="m">50</span> -iterations <span class="m">5</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">{</span>  
+</span></span><span class="line"><span class="cl"> <span class="s2">&#34;Durations&#34;</span>: <span class="o">[</span>  
+</span></span><span class="line"><span class="cl">  52,  
+</span></span><span class="line"><span class="cl">  52,  
+</span></span><span class="line"><span class="cl">  52,  
+</span></span><span class="line"><span class="cl">  52,  
+</span></span><span class="line"><span class="cl">  <span class="m">52</span>  
+</span></span><span class="line"><span class="cl"> <span class="o">]</span>,  
+</span></span><span class="line"><span class="cl"> <span class="s2">&#34;Mean&#34;</span>: 52,  
+</span></span><span class="line"><span class="cl"> <span class="s2">&#34;Variance&#34;</span>: 0,  
+</span></span><span class="line"><span class="cl"> <span class="s2">&#34;StdDev&#34;</span>: 0,  
+</span></span><span class="line"><span class="cl"> <span class="s2">&#34;CoefficientOfVariation&#34;</span>: 0,  
+</span></span><span class="line"><span class="cl"> <span class="s2">&#34;Max&#34;</span>: 52,  
+</span></span><span class="line"><span class="cl"> <span class="s2">&#34;Min&#34;</span>: 52,  
+</span></span><span class="line"><span class="cl"> <span class="s2">&#34;NoOfCores&#34;</span>: <span class="m">2</span>  
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p>Each iteration elapsed 52 milliseconds, and there is no variance in the execution. Docker has two flags, which sets the scheduler period and the allowed quota for a given function by assigning the limits to the Cgroup of the running container:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ docker run --help
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"> — cpu-period int Limit CPU CFS <span class="o">(</span>Completely Fair Scheduler<span class="o">)</span> period  
+</span></span><span class="line"><span class="cl"> — cpu-quota  int Limit CPU CFS <span class="o">(</span>Completely Fair Scheduler<span class="o">)</span> quota
+</span></span></code></pre></div><p>If the values are set, a running container is only allowed for running for <strong>quota</strong> microseconds in the given <strong>period.</strong> So, if you want 10% utilization, you can say your function has a quota of 1 millisecond for each 10 milliseconds. Therefore, if it consumes 1 millisecond of CPU, it has to wait for another 9 milliseconds to be able to execute again. The periods are in microseconds and an example invocation can be seen as follows:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ docker run — cpu-period<span class="o">=</span><span class="m">10000</span> — cpu-quota<span class="o">=</span><span class="m">1000</span> -ti mustafaakin/bench -batch <span class="m">50</span> -iterations <span class="m">5</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="o">{</span>  
+</span></span><span class="line"><span class="cl"> <span class="s2">&#34;Durations&#34;</span>: <span class="o">[</span>  
+</span></span><span class="line"><span class="cl">  520,  
+</span></span><span class="line"><span class="cl">  556,  
+</span></span><span class="line"><span class="cl">  529,  
+</span></span><span class="line"><span class="cl">  520,  
+</span></span><span class="line"><span class="cl">  <span class="m">520</span>  
+</span></span><span class="line"><span class="cl"> <span class="o">]</span>,  
+</span></span><span class="line"><span class="cl"> <span class="s2">&#34;Mean&#34;</span>: 529,  
+</span></span><span class="line"><span class="cl"> <span class="s2">&#34;Variance&#34;</span>: 194.4,  
+</span></span><span class="line"><span class="cl"> <span class="s2">&#34;StdDev&#34;</span>: 13.94,  
+</span></span><span class="line"><span class="cl"> <span class="s2">&#34;CoefficientOfVariation&#34;</span>: 0.026,  
+</span></span><span class="line"><span class="cl"> <span class="s2">&#34;Max&#34;</span>: 556,  
+</span></span><span class="line"><span class="cl"> <span class="s2">&#34;Min&#34;</span>: 520,  
+</span></span><span class="line"><span class="cl"> <span class="s2">&#34;NoOfCores&#34;</span>: <span class="m">2</span>  
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span></code></pre></div><p>What happens in multi-core case? Even if you have 2 CPUs and some code that can work in parallel, when you set the same period and quota as above, you will still get the same performance. Because, if your process runs for 10 seconds and utilizes all of the 2 CPUs, your process consumes 20 seconds of CPU time.</p>
 <p>As you see, the mean of each batch performance is reduced by 9.8% of the unconstrained version. However, the variance in mean duration increases. <strong>CoefficientOfVariation</strong> variable is the standard deviation divided by mean, which normalizes the standard deviation and gives a rough idea of the severity of the variation compared to the mean. This metric is important, since if you allow your function to work for a limited amount of time, it will get continuously throttled, and swapped with other processes. This constant context-switching introduces an overhead since the proper kernel structures must be created and the process state must be preserved. On the other hand, if your period is very large, your function might not even be active for the whole period. For instance, a realistic Lambda function will probably wait for an I/O on an external system, hence your function will end early, and it will not be throttled. In short, for proper throttling, your period and quota should be set on a sweet spot where you do not have an overhead and also guarantee the Quality of Service (QoS).</p>
 <h3 id="how-does-this-all-fit-in-awslambda">How does this all fit in AWS Lambda?</h3>
 <p>AWS Lambda just started supporting Golang. As you can run native binaries in Golang, you can have uniform and more predictable executions compared to other languages. This is one of the reasons why this experiment is conducted now. We will use the exact same code and run it in AWS Lambda starting from 128MB, with 64MB increments. The batch value will be 100 so that we don’t have significant variations. We will also try 1, 2, 3 and 4 threads which are simultaneously trying the same thing. In other words, threads are not to decrease the time, but to increase the work.</p>
@@ -124,8 +124,8 @@
 
 <h2>Comments</h2>
 <div id="disqus_thread"></div>
-<script type="application/javascript">
-    var disqus_config = function () {
+<script>
+    window.disqus_config = function () {
     
     
     
@@ -147,7 +147,7 @@
 
     
       
-<script type="application/javascript">
+<script>
 var doNotTrack = false;
 if (!doNotTrack) {
 	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;

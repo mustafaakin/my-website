@@ -3,7 +3,7 @@
 <head>
   <link href="https://gmpg.org/xfn/11" rel="profile">
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <meta name="generator" content="Hugo 0.69.2" />
+  <meta name="generator" content="Hugo 0.121.2">
 
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -37,7 +37,7 @@
     <div class="sidebar-about">
       <a href=""><h1>Mustafa Akın</h1></a>
       <p class="lead">
-       SRE Architect @Atlassian Opsgenie, PhD Student @Bilkent University CS 
+       Co-founder at @Resmo, previously Principal SRE at @Atlassian, Opsgenie 
       </p>
     </div>
 
@@ -57,133 +57,133 @@
   <p>For the readers that might be unaware, <a href="https://github.com/tektoncd/pipeline">Tekton</a> is a cloud-native CI/CD solution. In other words, it&rsquo;s a pipeline for Kubernetes that can generate DAGs (directed acyclic graph). It&rsquo;s one of the most straightforward solutions to run dependent Pods and steps in Kubernetes. Tekton runs pipelines as Task CRDs (Custom Resource Definition), whereas every task can have one or more sequential steps. Also, a Task can have a dependency on another task, which allows building a DAG. Also, a Task and Pipeline can be parameterized, which allows reusing components.</p>
 <p>In this blog post, I will take it one step further and introduce you to a methodology to generate more dynamic tasks, with the help of Jsonnet. <a href="https://jsonnet.org/">Jsonnet</a> is a data templating language by Google, which looks like JSON, but also allows conditionals, iterations, methods to enable writing cleaner files. Although JSON is human-readable, it&rsquo;s not easily human writable when you want to lots of stuff. And also, templating Kubernetes with YAML is an abomination that I never like or accept, and tools that embrace Jsonnet makes it easy to template Kubernetes configuration files. <a href="https://github.com/ksonnet/ksonnet">Ksonnet</a> is an excellent example. But you might also ask, &ldquo;why the hell am I templating too much configuration for Kubernetes, I just wanted to deploy my microservice,&rdquo; but that&rsquo;s another topic that can start flamewars.</p>
 <p>Tekton consists of <a href="https://github.com/tektoncd/pipeline/blob/master/docs/tasks.md">Task</a>, <a href="https://github.com/tektoncd/pipeline/blob/master/docs/taskruns.md">TaskRun</a>, <a href="https://github.com/tektoncd/pipeline/blob/master/docs/pipelines.md">Pipeline</a>, and <a href="https://github.com/tektoncd/pipeline/blob/master/docs/pipelineruns.md">PipelineRun</a> objects. Tasks define the steps. Pipeline define which tasks are going to be used. PipelineRun is a Pipeline instance that you want to execute, possibly with multiple parameters as input. As we are going to use Jsonnet to generate dynamic PipelineRun&rsquo;s procedurally, we are not going to use Tasks, but embed the Task spec to PipelineRun itself. The following is an example of a Pipeline with embedded Tasks:</p>
-<div class="highlight"><pre class="chroma"><code class="language-yaml" data-lang="yaml"><span class="k">apiVersion</span><span class="p">:</span><span class="w"> </span>tekton.dev/v1beta1<span class="w">
-</span><span class="w"></span><span class="k">kind</span><span class="p">:</span><span class="w"> </span>PipelineRun<span class="w">
-</span><span class="w"></span><span class="k">metadata</span><span class="p">:</span><span class="w">
-</span><span class="w">  </span><span class="k">name</span><span class="p">:</span><span class="w"> </span>embed-test<span class="w">
-</span><span class="w"></span><span class="k">spec</span><span class="p">:</span><span class="w">
-</span><span class="w">  </span><span class="k">pipelineSpec</span><span class="p">:</span><span class="w">
-</span><span class="w">    </span><span class="k">tasks</span><span class="p">:</span><span class="w">
-</span><span class="w">      </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>task<span class="m">-1</span><span class="w">
-</span><span class="w">        </span><span class="k">taskSpec</span><span class="p">:</span><span class="w">
-</span><span class="w">          </span><span class="k">steps</span><span class="p">:</span><span class="w">
-</span><span class="w">            </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>build<span class="w">
-</span><span class="w">              </span><span class="k">image</span><span class="p">:</span><span class="w"> </span>ubuntu<span class="w">
-</span><span class="w">              </span><span class="k">script</span><span class="p">:</span><span class="w"> </span>echo<span class="w"> </span><span class="s2">&#34;Compiling beep boop...&#34;</span><span class="w">
-</span><span class="w">            </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>test<span class="w">
-</span><span class="w">              </span><span class="k">image</span><span class="p">:</span><span class="w"> </span>ubuntu<span class="w">
-</span><span class="w">              </span><span class="k">script</span><span class="p">:</span><span class="w"> </span>echo<span class="w"> </span><span class="s2">&#34;Compiled, running tests..&#34;</span><span class="w">
-</span><span class="w">      </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>task<span class="m">-2</span><span class="w">
-</span><span class="w">        </span><span class="k">taskSpec</span><span class="p">:</span><span class="w">
-</span><span class="w">          </span><span class="k">steps</span><span class="p">:</span><span class="w">
-</span><span class="w">            </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>echo<span class="w">
-</span><span class="w">              </span><span class="k">image</span><span class="p">:</span><span class="w"> </span>ubuntu<span class="w">
-</span><span class="w">              </span><span class="k">script</span><span class="p">:</span><span class="w"> </span>echo<span class="w"> </span><span class="s2">&#34;This is another Pod!&#34;</span><span class="w">                
-</span></code></pre></div><p>As you can probably imagine, the task-1 and task-2 is a Pod, and Tekton injects wrappers to execute the steps sequentially. The above is 23 lines of YAML for 3 echo messages. Of course, it&rsquo;s not a realistic task, but let&rsquo;s see how we can reduce that with Jsonnet.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">tekton.dev/v1beta1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">PipelineRun</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">embed-test</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">pipelineSpec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">tasks</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">task-1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">taskSpec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">steps</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">build</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">ubuntu</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">script</span><span class="p">:</span><span class="w"> </span><span class="l">echo &#34;Compiling beep boop...&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">test</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">ubuntu</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">script</span><span class="p">:</span><span class="w"> </span><span class="l">echo &#34;Compiled, running tests..&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">task-2</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">taskSpec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">steps</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">echo</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">ubuntu</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">script</span><span class="p">:</span><span class="w"> </span><span class="l">echo &#34;This is another Pod!&#34;                </span><span class="w">
+</span></span></span></code></pre></div><p>As you can probably imagine, the task-1 and task-2 is a Pod, and Tekton injects wrappers to execute the steps sequentially. The above is 23 lines of YAML for 3 echo messages. Of course, it&rsquo;s not a realistic task, but let&rsquo;s see how we can reduce that with Jsonnet.</p>
 <p>The <code>tekton.jsonnet</code> file to simplify boilerplate:</p>
-<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="p">{</span>
-  <span class="nx">step</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">name</span><span class="p">,</span> <span class="nx">image</span><span class="p">,</span> <span class="nx">script</span><span class="p">)</span> <span class="p">{</span>
-    <span class="nx">name</span><span class="o">:</span> <span class="nx">name</span><span class="p">,</span>
-    <span class="nx">image</span><span class="o">:</span> <span class="nx">image</span><span class="p">,</span>
-    <span class="nx">script</span><span class="o">:</span> <span class="nx">script</span><span class="p">,</span>
-  <span class="p">},</span>
-  <span class="nx">task</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">name</span><span class="p">,</span> <span class="nx">steps</span><span class="p">)</span> <span class="p">{</span>
-    <span class="nx">name</span><span class="o">:</span> <span class="nx">name</span><span class="p">,</span>
-    <span class="nx">taskSpec</span><span class="o">:</span> <span class="p">{</span>
-      <span class="nx">steps</span><span class="o">:</span> <span class="nx">steps</span><span class="p">,</span>
-    <span class="p">},</span>
-  <span class="p">},</span>
-  <span class="nx">pipeline</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">name</span><span class="p">,</span> <span class="nx">tasks</span><span class="p">)</span> <span class="p">{</span>
-    <span class="nx">apiVersion</span><span class="o">:</span> <span class="s1">&#39;tekton.dev/v1beta1&#39;</span><span class="p">,</span>
-    <span class="nx">kind</span><span class="o">:</span> <span class="s1">&#39;PipelineRun&#39;</span><span class="p">,</span>
-    <span class="nx">metadata</span><span class="o">:</span> <span class="p">{</span>
-      <span class="nx">name</span><span class="o">:</span> <span class="nx">name</span><span class="p">,</span>
-    <span class="p">},</span>
-    <span class="nx">spec</span><span class="o">:</span> <span class="p">{</span>
-      <span class="nx">pipelineSpec</span><span class="o">:</span> <span class="p">{</span>
-        <span class="nx">tasks</span><span class="o">:</span> <span class="nx">tasks</span><span class="p">,</span>
-      <span class="p">},</span>
-    <span class="p">},</span>
-  <span class="p">},</span>
-<span class="p">}</span>
-</code></pre></div><p>The actual pipeline generator which you can execute with <code>jsonnet example.jsonnet | kubectl apply -f -</code></p>
-<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="nx">local</span> <span class="nx">tkn</span> <span class="o">=</span> <span class="kr">import</span> <span class="s1">&#39;tekton.jsonnet&#39;</span><span class="p">;</span>
-
-<span class="nx">local</span> <span class="nx">task1</span> <span class="o">=</span> <span class="nx">tkn</span><span class="p">.</span><span class="nx">task</span><span class="p">(</span><span class="nx">name</span><span class="o">=</span><span class="s1">&#39;task-1&#39;</span><span class="p">,</span> <span class="nx">steps</span><span class="o">=</span><span class="p">[</span>
-  <span class="nx">tkn</span><span class="p">.</span><span class="nx">step</span><span class="p">(</span><span class="s1">&#39;compile&#39;</span><span class="p">,</span> <span class="s1">&#39;ubuntu&#39;</span><span class="p">,</span> <span class="s2">&#34;echo &#39;Compling beep boop...&#39;&#34;</span><span class="p">),</span>
-  <span class="nx">tkn</span><span class="p">.</span><span class="nx">step</span><span class="p">(</span><span class="s1">&#39;tests&#39;</span><span class="p">,</span> <span class="s1">&#39;ubuntu&#39;</span><span class="p">,</span> <span class="s2">&#34;echo &#39;Compiled, running tests...&#39;&#34;</span><span class="p">),</span>
-<span class="p">]);</span>
-
-<span class="nx">local</span> <span class="nx">task2</span> <span class="o">=</span> <span class="nx">tkn</span><span class="p">.</span><span class="nx">task</span><span class="p">(</span><span class="nx">name</span><span class="o">=</span><span class="s1">&#39;task-2&#39;</span><span class="p">,</span> <span class="nx">steps</span><span class="o">=</span><span class="p">[</span>
-  <span class="nx">tkn</span><span class="p">.</span><span class="nx">step</span><span class="p">(</span><span class="s1">&#39;run&#39;</span><span class="p">,</span> <span class="s1">&#39;ubuntu&#39;</span><span class="p">,</span> <span class="s2">&#34;echo &#39;This is another Pod!&#39;&#34;</span><span class="p">),</span>
-<span class="p">]);</span>
-
-<span class="nx">tkn</span><span class="p">.</span><span class="nx">pipeline</span><span class="p">(</span><span class="nx">name</span><span class="o">=</span><span class="s1">&#39;embed-test-jsonnet&#39;</span><span class="p">,</span> <span class="nx">tasks</span><span class="o">=</span><span class="p">[</span><span class="nx">task1</span><span class="p">,</span> <span class="nx">task2</span><span class="p">])</span>
-</code></pre></div><p>It looks cleaner in this version because it&rsquo;s smaller, and unlike YAML, it does not require indentation to be valid. The example just shortened writing the Kubernetes-specific configuration and provided helper functions. The above example is simple, not worth to introduce another language. In what conditions using Jsonnet would thrive? The power of Jsonnet comes from helping you to modularize the code by using imports, iterations, conditionals, and some of the <a href="https://jsonnet.org/ref/stdlib.html">standard library functions</a>. Note that Tekton already supports parameters and <a href="https://github.com/tektoncd/pipeline/blob/master/docs/conditions.md">conditional execution</a> and it allows acting based on the results of the tasks.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">step</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">name</span><span class="p">,</span> <span class="nx">image</span><span class="p">,</span> <span class="nx">script</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">name</span><span class="o">:</span> <span class="nx">name</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">image</span><span class="o">:</span> <span class="nx">image</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">script</span><span class="o">:</span> <span class="nx">script</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="p">},</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">task</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">name</span><span class="p">,</span> <span class="nx">steps</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">name</span><span class="o">:</span> <span class="nx">name</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">taskSpec</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nx">steps</span><span class="o">:</span> <span class="nx">steps</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">  <span class="p">},</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">pipeline</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">name</span><span class="p">,</span> <span class="nx">tasks</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">apiVersion</span><span class="o">:</span> <span class="s1">&#39;tekton.dev/v1beta1&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">kind</span><span class="o">:</span> <span class="s1">&#39;PipelineRun&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">metadata</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nx">name</span><span class="o">:</span> <span class="nx">name</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">spec</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="nx">pipelineSpec</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="nx">tasks</span><span class="o">:</span> <span class="nx">tasks</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">  <span class="p">},</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>The actual pipeline generator which you can execute with <code>jsonnet example.jsonnet | kubectl apply -f -</code></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="nx">local</span> <span class="nx">tkn</span> <span class="o">=</span> <span class="kr">import</span> <span class="s1">&#39;tekton.jsonnet&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nx">local</span> <span class="nx">task1</span> <span class="o">=</span> <span class="nx">tkn</span><span class="p">.</span><span class="nx">task</span><span class="p">(</span><span class="nx">name</span><span class="o">=</span><span class="s1">&#39;task-1&#39;</span><span class="p">,</span> <span class="nx">steps</span><span class="o">=</span><span class="p">[</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">tkn</span><span class="p">.</span><span class="nx">step</span><span class="p">(</span><span class="s1">&#39;compile&#39;</span><span class="p">,</span> <span class="s1">&#39;ubuntu&#39;</span><span class="p">,</span> <span class="s2">&#34;echo &#39;Compling beep boop...&#39;&#34;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">tkn</span><span class="p">.</span><span class="nx">step</span><span class="p">(</span><span class="s1">&#39;tests&#39;</span><span class="p">,</span> <span class="s1">&#39;ubuntu&#39;</span><span class="p">,</span> <span class="s2">&#34;echo &#39;Compiled, running tests...&#39;&#34;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl"><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nx">local</span> <span class="nx">task2</span> <span class="o">=</span> <span class="nx">tkn</span><span class="p">.</span><span class="nx">task</span><span class="p">(</span><span class="nx">name</span><span class="o">=</span><span class="s1">&#39;task-2&#39;</span><span class="p">,</span> <span class="nx">steps</span><span class="o">=</span><span class="p">[</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">tkn</span><span class="p">.</span><span class="nx">step</span><span class="p">(</span><span class="s1">&#39;run&#39;</span><span class="p">,</span> <span class="s1">&#39;ubuntu&#39;</span><span class="p">,</span> <span class="s2">&#34;echo &#39;This is another Pod!&#39;&#34;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl"><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nx">tkn</span><span class="p">.</span><span class="nx">pipeline</span><span class="p">(</span><span class="nx">name</span><span class="o">=</span><span class="s1">&#39;embed-test-jsonnet&#39;</span><span class="p">,</span> <span class="nx">tasks</span><span class="o">=</span><span class="p">[</span><span class="nx">task1</span><span class="p">,</span> <span class="nx">task2</span><span class="p">])</span>
+</span></span></code></pre></div><p>It looks cleaner in this version because it&rsquo;s smaller, and unlike YAML, it does not require indentation to be valid. The example just shortened writing the Kubernetes-specific configuration and provided helper functions. The above example is simple, not worth to introduce another language. In what conditions using Jsonnet would thrive? The power of Jsonnet comes from helping you to modularize the code by using imports, iterations, conditionals, and some of the <a href="https://jsonnet.org/ref/stdlib.html">standard library functions</a>. Note that Tekton already supports parameters and <a href="https://github.com/tektoncd/pipeline/blob/master/docs/conditions.md">conditional execution</a> and it allows acting based on the results of the tasks.</p>
 <p>In the following (somewhat) realistic example, we&rsquo;ll clone my favorite Java library from Github, <a href="https://github.com/jhalterman/failsafe.git">Failsafe</a> repository with given branch and execute tests for multiple versions of Java in parallel. Note that we will not be using Tekton PipelineResource CRD, because they are still in Alpha, and the devs don&rsquo;t <a href="https://github.com/tektoncd/pipeline/blob/master/docs/resources.md#why-arent-pipelineresources-in-beta">feel comfortable updating</a> and also cloning from the git is simple step to write. The YAML equivalent would look like the following:</p>
-<div class="highlight"><pre class="chroma"><code class="language-yaml" data-lang="yaml"><span class="k">apiVersion</span><span class="p">:</span><span class="w"> </span>tekton.dev/v1beta1<span class="w">
-</span><span class="w"></span><span class="k">kind</span><span class="p">:</span><span class="w"> </span>PipelineRun<span class="w">
-</span><span class="w"></span><span class="k">metadata</span><span class="p">:</span><span class="w">
-</span><span class="w">  </span><span class="k">name</span><span class="p">:</span><span class="w"> </span>git-test<span class="w">
-</span><span class="w"></span><span class="k">spec</span><span class="p">:</span><span class="w">
-</span><span class="w">  </span><span class="k">pipelineSpec</span><span class="p">:</span><span class="w">
-</span><span class="w">    </span><span class="k">tasks</span><span class="p">:</span><span class="w">
-</span><span class="w">      </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>java<span class="m">-11</span><span class="w">
-</span><span class="w">        </span><span class="k">taskSpec</span><span class="p">:</span><span class="w">
-</span><span class="w">          </span><span class="k">steps</span><span class="p">:</span><span class="w">
-</span><span class="w">            </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>echo<span class="w">
-</span><span class="w">              </span><span class="k">image</span><span class="p">:</span><span class="w"> </span>alpine/git<span class="p">:</span>v2<span class="m">.24.2</span><span class="w">
-</span><span class="w">              </span><span class="k">script</span><span class="p">:</span><span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span>https<span class="p">:</span>//github.com/jhalterman/failsafe.git<span class="w"> </span>.<span class="w">
-</span><span class="w">            </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>test<span class="w">
-</span><span class="w">              </span><span class="k">image</span><span class="p">:</span><span class="w"> </span>maven<span class="p">:</span><span class="m">3.6.3</span>-jdk<span class="m">-11</span><span class="w">
-</span><span class="w">              </span><span class="k">script</span><span class="p">:</span><span class="w"> </span>mvn<span class="w"> </span>clean<span class="w"> </span>test<span class="w"> </span>-T1C<span class="w"> </span>-B<span class="w">
-</span></code></pre></div><p>So, to test it with multiple versions of Java in parallel, we need to duplicate the tasks for each Java version and duplicate 11 lines for each. Let&rsquo;s see how we can simplify it with Jsonnet:</p>
-<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="nx">local</span> <span class="nx">tkn</span> <span class="o">=</span> <span class="kr">import</span> <span class="s1">&#39;tekton.jsonnet&#39;</span><span class="p">;</span>
-
-<span class="nx">local</span> <span class="nx">git</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">repo</span><span class="p">,</span> <span class="nx">branch</span><span class="p">)</span>
-  <span class="nx">tkn</span><span class="p">.</span><span class="nx">step</span><span class="p">(</span>
-    <span class="nx">name</span><span class="o">=</span><span class="s1">&#39;git-clone&#39;</span><span class="p">,</span>
-    <span class="c1">// Always pin your versions in Docker images to avoid unnecessary pulls
-</span><span class="c1"></span>    <span class="c1">// You can achieve more security with sha256 pinning
-</span><span class="c1"></span>    <span class="nx">image</span><span class="o">=</span><span class="s1">&#39;alpine/git:v2.24.2&#39;</span><span class="p">,</span>
-    <span class="c1">// Single branch and depth=1 makees checking out much faster for large repos
-</span><span class="c1"></span>    <span class="nx">script</span><span class="o">=</span><span class="s1">&#39;git clone %s --depth=1 --single-branch --branch %s .&#39;</span> <span class="o">%</span> <span class="p">[</span><span class="nx">repo</span><span class="p">,</span> <span class="nx">branch</span><span class="p">]</span>
-  <span class="p">);</span>
-
-
-<span class="nx">local</span> <span class="nx">mvnTest</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">version</span><span class="p">)</span>
-  <span class="nx">tkn</span><span class="p">.</span><span class="nx">task</span><span class="p">(</span>
-    <span class="nx">name</span><span class="o">=</span><span class="s1">&#39;java-&#39;</span> <span class="o">+</span> <span class="nx">version</span><span class="p">,</span>
-    <span class="nx">steps</span><span class="o">=</span><span class="p">[</span>
-        <span class="c1">// My favorite Java library &lt;3
-</span><span class="c1"></span>      <span class="nx">git</span><span class="p">(</span><span class="s1">&#39;https://github.com/jhalterman/failsafe.git&#39;</span><span class="p">,</span> <span class="s1">&#39;master&#39;</span><span class="p">),</span>
-      <span class="c1">// Batch mode causes less output in Maven
-</span><span class="c1"></span>      <span class="nx">tkn</span><span class="p">.</span><span class="nx">step</span><span class="p">(</span><span class="nx">name</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="nx">image</span><span class="o">=</span><span class="s1">&#39;maven:&#39;</span> <span class="o">+</span> <span class="nx">version</span><span class="p">,</span> <span class="nx">script</span><span class="o">=</span><span class="s1">&#39;mvn test -T1C --batch-mode&#39;</span><span class="p">),</span>
-    <span class="p">]</span>
-  <span class="p">);</span>
-
-<span class="nx">local</span> <span class="nx">versions</span> <span class="o">=</span> <span class="p">[</span>
-  <span class="s2">&#34;3-jdk-8&#34;</span><span class="p">,</span>
-  <span class="s2">&#34;3-jdk-11&#34;</span><span class="p">,</span>
-  <span class="s2">&#34;3-jdk-14&#34;</span><span class="p">,</span>
-<span class="p">];</span>
-
-<span class="nx">tkn</span><span class="p">.</span><span class="nx">pipeline</span><span class="p">(</span>
-  <span class="nx">name</span><span class="o">=</span><span class="s1">&#39;java-test-jsonnet&#39;</span><span class="p">,</span>
-  <span class="nx">tasks</span><span class="o">=</span><span class="p">[</span>
-    <span class="nx">mvnTest</span><span class="p">(</span><span class="nx">version</span><span class="p">)</span>
-    <span class="k">for</span> <span class="nx">version</span> <span class="k">in</span> <span class="nx">versions</span>
-  <span class="p">]</span>
-<span class="p">)</span>
-</code></pre></div><p>As you can see from <a href="https://github.com/tektoncd/dashboard">Tekton Dashboard</a>, with <a href="https://github.com/tektoncd/cli">Tekton CLI</a>, or just kubectl itself, the above Jsonnet script would generate 3 Pods to be executed in parallel. In each Pod, the steps are almost identical, with the Docker image versions changing. You can extend the tekton.jsonnet file to support features like timeouts, runAfter, result conditions. Jsonnet allows external parameters as strings or Javascript objects, this can be helpful to generate more dynamic pipelines.</p>
-<p>However, you could also write the above by using <code>Task CRD</code> make it modular to get Java version and branch as a parameter, but the above Jsonnet code feels cleaner to me and is more extensible if you ever have a templating need arise. I repeat string templating YAML is an abomination. Jsonnet is not doing string interpolation, it&rsquo;s Turing-complete, and it &lsquo;s much easier to catch errors, (but it also has its some difficulties). Beware, if you go multiple-step ahead, you can find yourself replicating Jenkins&rsquo;s Groovy menace and can cause tears. Maybe your pipelines should not be that complex, but if they ever are, Jsonnet+Tekton is a great combination you can try.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l">tekton.dev/v1beta1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">PipelineRun</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">metadata</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">git-test</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">spec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">pipelineSpec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">tasks</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">java-11</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">taskSpec</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">steps</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">echo</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">alpine/git:v2.24.2</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">script</span><span class="p">:</span><span class="w"> </span><span class="l">git clone https://github.com/jhalterman/failsafe.git .</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">test</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">maven:3.6.3-jdk-11</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="nt">script</span><span class="p">:</span><span class="w"> </span><span class="l">mvn clean test -T1C -B</span><span class="w">
+</span></span></span></code></pre></div><p>So, to test it with multiple versions of Java in parallel, we need to duplicate the tasks for each Java version and duplicate 11 lines for each. Let&rsquo;s see how we can simplify it with Jsonnet:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="nx">local</span> <span class="nx">tkn</span> <span class="o">=</span> <span class="kr">import</span> <span class="s1">&#39;tekton.jsonnet&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nx">local</span> <span class="nx">git</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">repo</span><span class="p">,</span> <span class="nx">branch</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">tkn</span><span class="p">.</span><span class="nx">step</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">name</span><span class="o">=</span><span class="s1">&#39;git-clone&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// Always pin your versions in Docker images to avoid unnecessary pulls
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// You can achieve more security with sha256 pinning
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nx">image</span><span class="o">=</span><span class="s1">&#39;alpine/git:v2.24.2&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// Single branch and depth=1 makees checking out much faster for large repos
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nx">script</span><span class="o">=</span><span class="s1">&#39;git clone %s --depth=1 --single-branch --branch %s .&#39;</span> <span class="o">%</span> <span class="p">[</span><span class="nx">repo</span><span class="p">,</span> <span class="nx">branch</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">  <span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nx">local</span> <span class="nx">mvnTest</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">version</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">tkn</span><span class="p">.</span><span class="nx">task</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">name</span><span class="o">=</span><span class="s1">&#39;java-&#39;</span> <span class="o">+</span> <span class="nx">version</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">steps</span><span class="o">=</span><span class="p">[</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">// My favorite Java library &lt;3
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="nx">git</span><span class="p">(</span><span class="s1">&#39;https://github.com/jhalterman/failsafe.git&#39;</span><span class="p">,</span> <span class="s1">&#39;master&#39;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">      <span class="c1">// Batch mode causes less output in Maven
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>      <span class="nx">tkn</span><span class="p">.</span><span class="nx">step</span><span class="p">(</span><span class="nx">name</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="nx">image</span><span class="o">=</span><span class="s1">&#39;maven:&#39;</span> <span class="o">+</span> <span class="nx">version</span><span class="p">,</span> <span class="nx">script</span><span class="o">=</span><span class="s1">&#39;mvn test -T1C --batch-mode&#39;</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">    <span class="p">]</span>
+</span></span><span class="line"><span class="cl">  <span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nx">local</span> <span class="nx">versions</span> <span class="o">=</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;3-jdk-8&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;3-jdk-11&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;3-jdk-14&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nx">tkn</span><span class="p">.</span><span class="nx">pipeline</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">name</span><span class="o">=</span><span class="s1">&#39;java-test-jsonnet&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">tasks</span><span class="o">=</span><span class="p">[</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">mvnTest</span><span class="p">(</span><span class="nx">version</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">    <span class="k">for</span> <span class="nx">version</span> <span class="k">in</span> <span class="nx">versions</span>
+</span></span><span class="line"><span class="cl">  <span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span></code></pre></div><p>As you can see from <a href="https://github.com/tektoncd/dashboard">Tekton Dashboard</a>, with <a href="https://github.com/tektoncd/cli">Tekton CLI</a>, or just kubectl itself, the above Jsonnet script would generate 3 Pods to be executed in parallel. In each Pod, the steps are almost identical, with the Docker image versions changing. You can extend the tekton.jsonnet file to support features like timeouts, runAfter, result conditions. Jsonnet allows external parameters as strings or Javascript objects, this can be helpful to generate more dynamic pipelines.</p>
+<p>However, you could also write the above by using <code>Task CRD</code> make it modular to get Java version and branch as a parameter, but the above Jsonnet code feels cleaner to me and is more extensible if you ever have a templating need arise. I repeat string templating YAML is an abomination. Jsonnet is not doing string interpolation, it&rsquo;s Turing-complete, and it &rsquo;s much easier to catch errors, (but it also has its some difficulties). Beware, if you go multiple-step ahead, you can find yourself replicating Jenkins&rsquo;s Groovy menace and can cause tears. Maybe your pipelines should not be that complex, but if they ever are, Jsonnet+Tekton is a great combination you can try.</p>
 
 </div>
 
 <h2>Comments</h2>
 <div id="disqus_thread"></div>
-<script type="application/javascript">
-    var disqus_config = function () {
+<script>
+    window.disqus_config = function () {
     
     
     
@@ -205,7 +205,7 @@
 
     
       
-<script type="application/javascript">
+<script>
 var doNotTrack = false;
 if (!doNotTrack) {
 	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;

@@ -3,13 +3,13 @@
 <head>
   <link href="https://gmpg.org/xfn/11" rel="profile">
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <meta name="generator" content="Hugo 0.69.2" />
+  <meta name="generator" content="Hugo 0.121.2">
 
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>Mustafa Akın</title>
-  <meta name="description" content="SRE Architect @Atlassian Opsgenie, PhD Student @Bilkent University CS" />
+  <meta name="description" content="Co-founder at @Resmo, previously Principal SRE at @Atlassian, Opsgenie" />
 
   
   <link type="text/css" rel="stylesheet" href="./css/print.css" media="print">
@@ -33,7 +33,7 @@
     <div class="sidebar-about">
       <a href=""><h1>Mustafa Akın</h1></a>
       <p class="lead">
-       SRE Architect @Atlassian Opsgenie, PhD Student @Bilkent University CS 
+       Co-founder at @Resmo, previously Principal SRE at @Atlassian, Opsgenie 
       </p>
     </div>
 
@@ -49,6 +49,40 @@
     <main class="content container">
     <div class="posts">
 <article class="post">
+  <h1 class="post-title">
+    <a href="./posts/2024-01-08-indexing-icloud-photos-with-ai-using-llava/">Indexing iCloud Photos with AI Using LLaVA and pgvector</a>
+  </h1>
+  <time datetime="2024-01-08T00:00:00Z" class="post-date">Mon, Jan 8, 2024</time>
+  I&rsquo;ve been fascinated about the rise of AI. However, for the most of the part, it feels like magic. I like to get to the bottom fo the things as much as possible. My favorite courses at CS Undergrad were Digital Design, Computer Architecture, Operating Systems and Networking, and I was in the 1% in them (except networking, damn Electronics students). I liked them very much. Though my father taught me Visual Basic and databases when I was around 10, taking these courses was finally when it clicked me.
+  
+  <div class="read-more-link">
+    <a href="./posts/2024-01-08-indexing-icloud-photos-with-ai-using-llava/">Read More…</a>
+  </div>
+  
+</article><article class="post">
+  <h1 class="post-title">
+    <a href="./posts/2021-12-08-running-intellij-idea-with-jdk17-for-better-render-performance/">Running IntelliJ IDEA with JDK 17 for Better Render Performance with Metal</a>
+  </h1>
+  <time datetime="2021-12-08T00:00:00Z" class="post-date">Wed, Dec 8, 2021</time>
+  Over the years, although a tremendously valuable tool, IntelliJ IDEA started to feel slowed down, even on these latest M1 Pro machines. It&rsquo;s become frustrating. I disabled as many plugins as not needed. However, it&rsquo;s still not sufficient. I have discovered that you can improve the performance by switching IDEA to the latest JDK. JetBrains has its runtime with its patches for HiDPI supports, performance improvements, and bugfixes for running the IntelliJ family more smoothly.
+  
+  <div class="read-more-link">
+    <a href="./posts/2021-12-08-running-intellij-idea-with-jdk17-for-better-render-performance/">Read More…</a>
+  </div>
+  
+</article><article class="post">
+  <h1 class="post-title">
+    <a href="./posts/2021-09-07-how-arbitrary-structured-data-per-request-helps-opsgenie-to-resolve-and-prevent-incidents/">How arbitrary structured data per request helps Opsgenie to resolve and prevent incidents</a>
+  </h1>
+  <time datetime="2021-09-07T00:00:00Z" class="post-date">Tue, Sep 7, 2021</time>
+  It&rsquo;s been a long time since I&rsquo;ve blogged. My backlog of topics is full, however, I could not publish due to both professional and personal developments in the last 1.5 years. Anyways, glad to be back.
+For some context, I&rsquo;m from Opsgenie. Since Opsgenie is an on-call and alert management tool, it needs to be highly available than most of the services. We take it very seriously. Over the years, we have employed and evolved many engineering practices and principles to consistently achieve this.
+  
+  <div class="read-more-link">
+    <a href="./posts/2021-09-07-how-arbitrary-structured-data-per-request-helps-opsgenie-to-resolve-and-prevent-incidents/">Read More…</a>
+  </div>
+  
+</article><article class="post">
   <h1 class="post-title">
     <a href="./posts/2020-04-26-using-jsonnet-to-generate-dynamic-tekton-pipelines-in-kubernetes/">Using Jsonnet to Generate Dynamic Tekton Pipelines in Kubernetes</a>
   </h1>
@@ -88,7 +122,7 @@ First, I will create 3 VMs with Ubuntu Multipass. The reason I have chosen it is
   </h1>
   <time datetime="2019-12-12T14:01:01Z" class="post-date">Thu, Dec 12, 2019</time>
   Originally appeared on Opsgenie Engineering Blog
- In Kubernetes, there are many objects in the core APIs. One of the most overlooked object types is Events, which are reports on the objects in the API Server. Pod started, scheduled, ReplicaSet scaled are informational events, whereas unhealthy nodes, Pod sandbox errors are considered Warning events, which you may want to get alerts when they occur.
+In Kubernetes, there are many objects in the core APIs. One of the most overlooked object types is Events, which are reports on the objects in the API Server. Pod started, scheduled, ReplicaSet scaled are informational events, whereas unhealthy nodes, Pod sandbox errors are considered Warning events, which you may want to get alerts when they occur.
 Events have a high volume of activity compared to other objects in the Kubernetes.
   
   <div class="read-more-link">
@@ -112,7 +146,7 @@ Events have a high volume of activity compared to other objects in the Kubernete
   </h1>
   <time datetime="2018-06-11T13:32:49Z" class="post-date">Mon, Jun 11, 2018</time>
   Originally appeared on Opsgenie Engineering Blog
- If you are deploying serverless applications in AWS Lambda and using Java, you are well aware of cold start problems. Cold start happens because of the way the Java Virtual Machine works, it kicks in JIT (Just-in-time), and it needs to “warm-up” like a car from the 80s. AWS Lambda caches containers for you, so when idle, it is paused and brought back online immediately as soon as a request arrives.
+If you are deploying serverless applications in AWS Lambda and using Java, you are well aware of cold start problems. Cold start happens because of the way the Java Virtual Machine works, it kicks in JIT (Just-in-time), and it needs to “warm-up” like a car from the 80s. AWS Lambda caches containers for you, so when idle, it is paused and brought back online immediately as soon as a request arrives.
   
   <div class="read-more-link">
     <a href="./posts/2018-06-11-using-graalvm-to-run-native-java-in-aws-lambda-with-golang/">Read More…</a>
@@ -124,7 +158,7 @@ Events have a high volume of activity compared to other objects in the Kubernete
   </h1>
   <time datetime="2018-05-22T13:03:29Z" class="post-date">Tue, May 22, 2018</time>
   Originally appeared on Opsgenie Engineering Blog
- Cloud Native is a new approach to build and run applications that can leverage the cloud computing delivery model. The objective is to improve speed and stability by optimizing the pipeline by leveraging Cloud Native model at each step, from coding to production, by making use of tools, such as containers and orchestrators, combined with additional tooling. As Cloud Native environments get more and more attraction, the tooling around these environments continue to evolve to fit the various needs.
+Cloud Native is a new approach to build and run applications that can leverage the cloud computing delivery model. The objective is to improve speed and stability by optimizing the pipeline by leveraging Cloud Native model at each step, from coding to production, by making use of tools, such as containers and orchestrators, combined with additional tooling. As Cloud Native environments get more and more attraction, the tooling around these environments continue to evolve to fit the various needs.
   
   <div class="read-more-link">
     <a href="./posts/2018-05-22-state-of-cloud-native-ci-cd-tools-for-kubernetes/">Read More…</a>
@@ -148,7 +182,7 @@ SQL support was announced in ElasticON and there is a comprehensive presentation
   </h1>
   <time datetime="2018-04-03T14:31:01Z" class="post-date">Tue, Apr 3, 2018</time>
   Originally appeared on Opsgenie Engineering Blog
- Kubernetes adoption is increasing each day. People are transforming both development and production environments to container-based deployments, and they are making use of Kubernetes to handle the operations more elegantly. Ability to do one-click zero downtime rolling deployment updates was a dream or required too many interventions by an operator or a custom in-house applications where they were heavily dependent on the specific platforms.
+Kubernetes adoption is increasing each day. People are transforming both development and production environments to container-based deployments, and they are making use of Kubernetes to handle the operations more elegantly. Ability to do one-click zero downtime rolling deployment updates was a dream or required too many interventions by an operator or a custom in-house applications where they were heavily dependent on the specific platforms.
   
   <div class="read-more-link">
     <a href="./posts/2018-04-03-advanced-kubernetes-objects-you-need-to-know/">Read More…</a>
@@ -160,7 +194,7 @@ SQL support was announced in ElasticON and there is a comprehensive presentation
   </h1>
   <time datetime="2018-02-27T15:01:01Z" class="post-date">Tue, Feb 27, 2018</time>
   Originally appeared on Opsgenie Engineering Blog
- Network security is an essential topic for companies, as a compromised network is a direct threat to both users and the applications. The easiest way to maintain security is just blocking the unauthorized activity or only allowing the predetermined traffic. For instance, if you have an Elasticsearch cluster, there is no need to open ports other than 9200 and 9300 to your applications.
+Network security is an essential topic for companies, as a compromised network is a direct threat to both users and the applications. The easiest way to maintain security is just blocking the unauthorized activity or only allowing the predetermined traffic. For instance, if you have an Elasticsearch cluster, there is no need to open ports other than 9200 and 9300 to your applications. However, as the number of components increase and the requirements of your software stack pile up, it becomes harder to allow the permissions correctly.
   
   <div class="read-more-link">
     <a href="./posts/2018-02-27-analyzing-aws-vpc-flow-logs-using-apache-parquet-files-and-amazon-athena/">Read More…</a>
@@ -172,7 +206,7 @@ SQL support was announced in ElasticON and there is a comprehensive presentation
   </h1>
   <time datetime="2018-01-25T14:04:45Z" class="post-date">Thu, Jan 25, 2018</time>
   Originally appeared on Opsgenie Engineering Blog
- We have been using AWS Lambda for over two years at OpsGenie. Our primary programming language for our Lambda functions is Java. Although Java tends to use more memory compared to other languages such as Node.js and Python, we still allocate more memory than we need for our functions. There are two primary reasons. Sometimes depending on the traffic, there can be unexpected spikes in usage.
+We have been using AWS Lambda for over two years at OpsGenie. Our primary programming language for our Lambda functions is Java. Although Java tends to use more memory compared to other languages such as Node.js and Python, we still allocate more memory than we need for our functions. There are two primary reasons. Sometimes depending on the traffic, there can be unexpected spikes in usage.
   
   <div class="read-more-link">
     <a href="./posts/2018-01-25-how-does-proportional-cpu-allocation-work-with-aws-lambda/">Read More…</a>
@@ -321,7 +355,7 @@ HTML5 Magic As you might not know, the HTML 5 specification offers File API for 
 
     
       
-<script type="application/javascript">
+<script>
 var doNotTrack = false;
 if (!doNotTrack) {
 	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;

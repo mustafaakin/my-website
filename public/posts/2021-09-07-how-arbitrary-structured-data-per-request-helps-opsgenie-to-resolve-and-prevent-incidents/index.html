@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head>
+  <link href="https://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.121.2">
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:description" content="It&rsquo;s been a long time since I&rsquo;ve blogged. My backlog of topics is full, however, I could not publish due to both professional and personal developments in the last 1.5 years. Anyways, glad to be back.
+For some context, I&rsquo;m from Opsgenie. Since Opsgenie is an on-call and alert management tool, it needs to be highly available than most of the services. We take it very seriously. Over the years, we have employed and evolved many engineering practices and principles to consistently achieve this." />
+  <meta name="twitter:title" content="How arbitrary structured data per request helps Opsgenie to resolve and prevent incidents " />
+  <meta name="twitter:site" content="@mustafaakin" />
+  <meta name="twitter:creator" content="@mustafaakin" />
+  <title>How arbitrary structured data per request helps Opsgenie to resolve and prevent incidents &middot; Mustafa Akın</title>
+  <meta name="description" content="" />
+
+  
+  <link type="text/css" rel="stylesheet" href="../../css/print.css" media="print">
+  <link type="text/css" rel="stylesheet" href="../../css/poole.css">
+  <link type="text/css" rel="stylesheet" href="../../css/syntax.css">
+  <link type="text/css" rel="stylesheet" href="../../css/hyde.css">
+  
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="../../apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="../../favicon.ico">
+
+  
+  
+</head>
+
+  <body class=" ">
+  <aside class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <a href=""><h1>Mustafa Akın</h1></a>
+      <p class="lead">
+       Co-founder at @Resmo, previously Principal SRE at @Atlassian, Opsgenie 
+      </p>
+    </div>
+
+    <nav>
+      <ul class="sidebar-nav">
+        <li><a href="">Home</a> </li>
+        <li><a href="https://github.com/mustafaakin/"> Github </a></li><li><a href="https://www.linkedin.com/in/mustafaakin/"> LinkedIn </a></li><li><a href="https://twitter.com/mustafaakin/"> Twitter </a></li>
+      </ul>
+    </nav>
+  </div>
+</aside>
+
+    <main class="content container">
+    <div class="post">
+  <h1>How arbitrary structured data per request helps Opsgenie to resolve and prevent incidents</h1>
+  <time datetime=2021-09-07T00:00:00Z class="post-date">Tue, Sep 7, 2021</time>
+  <p>It&rsquo;s been a long time since I&rsquo;ve blogged. My backlog of topics is full, however, I could not publish due to both professional and personal developments in the last 1.5 years. Anyways, glad to be back.</p>
+<p>For some context, I&rsquo;m from <a href="https://www.atlassian.com/software/opsgenie">Opsgenie</a>. Since Opsgenie is an on-call and alert management tool, it needs to be highly available than most of the services. We take it very seriously. Over the years, we have employed and evolved many engineering practices and principles to consistently achieve this. One of them is how we monitor our running services and our dependencies.</p>
+<p>When talking about monitoring in the software world, mostly tools like Prometheus, Nagios, Cloudwatch, NewRelic, Datadog, Honeycomb come into mind. We generalize monitoring as a practice in which you ask questions to a system and it gives answers, without actually live-debugging running code or systems.  That&rsquo;s why metrics, logs, and traces are exported to 3rd party systems, so you can ask your questions. In other words, you observe the system from outside, whatever it is.</p>
+<p>However, although there are a variety of tools and vast data, some of the questions might be hard to answer. Considering the three pillars of observability, and various views <a href="https://www.datadoghq.com/three-pillars-of-observability/">Datadog</a> or <a href="https://www.honeycomb.io/blog/they-arent-pillars-theyre-lenses/">Honeycomb</a> on them, they are mostly categorized as metrics, traces, and logs. For each, I&rsquo;ll briefly talk about what&rsquo;s good, wrong about them, and how we find a middle way.</p>
+<ul>
+<li>
+<p><strong>Metrics:</strong> Apart from infrastructure provided (AWS resources) ones, we find them mostly uninformative. The reason is that, by nature, they are aggregated, lack detail, and most tools that handle them cannot handle cardinality at all. Have fun running daily 10k Kubernetes Pods and optimizing your Prometheus to not crash and negotiate with SaaS providers. Metrics are useful for fast detection and ease of writing alarms to notify on-call. Another useful thing is we can observe the trends if we are suspicious of a longer behavior because it&rsquo;s cheap to store them in longer retention. However, 90% of our queries hit 1-hour of data, 95% 1-day.</p>
+</li>
+<li>
+<p><strong>Logs:</strong> They are way worse than metrics because they are unstructured and much more expensive to store.  The only additional detail in each log is the log level, timestamp, trace-id, service-name, and instance-id. This data only helps to identify logs; the message is free-form and requires parsing. Logs are only helpful in obscure support cases, where we hopefully put something as a log. However, if something unexpected happens, i.e a non-discardable, exception occurs (which is not in an ignore-list), we create an alert that is directed to the team who owns the service.</p>
+</li>
+<li>
+<p><strong>Traces:</strong> Employing more than 70 microservices, and co-existing in a huge enterprise, traces can be helpful to visualize flows. Rarely, we identify some issues by looking at them individually to discover dependencies and which one had problems (latency, call count, etc.). But that&rsquo;s it. None of the toolings allows advanced filtering, i.e show me traces that are made by enterprise customers and that made &gt;100 AWS calls. The data is there, but it&rsquo;s not flexible enough to query. For a tracing system to be useful, it must have an SQL capable engine, or something else advanced filtering which can also do aggregations or subqueries. But it would probably cost thousands of dollars to do it in real-time with dynamic data. (i.e tags). I once wrote a sink for Jaeger to a TimescaleDB cluster to play around with, it had some promise, but although I love SQL, I needed to level up my SQL skills.</p>
+</li>
+</ul>
+<h2 id="if-you-dont-like-metrics-logs-and-traces-how-is-opsgenie-doing-the-monitoring">If you don&rsquo;t like metrics, logs, and traces, how is Opsgenie doing the monitoring?</h2>
+<p>My points above might seem snarky to some, but they are derived from real experience. Instead of those 3, we are publishing arbitrarily-wide structured data-blobs per request as <a href="https://twitter.com/mipsytipsy/status/1434985888920924160">Charity Majors</a> advocates for, or in other words long key-value data per request, or what we prefer to call transaction, which can also mean event processing (SQS). In Opsgenie, we prefer minimal transactions and async flows.</p>
+<p>For instance, when a create alert request is received, after the authentication and verification, it&rsquo;s passed to an SQS queue for another service to pick up. And if this alert is going for multiple escalations, schedules, notifications they are all passed around as queue messages, so that they can be scaled very easily and can be retried without hesitation. After an alert is received, it&rsquo;s around 350ms to result in a notification to customers. We track <a href="https://opsgenie.status.atlassian.com/">this metric</a> publicly.</p>
+<p>So, with many sync and async transactions, it&rsquo;s imperative to monitor them easily. In each transaction (request or event processing), we collect some values in the transaction context. The data in our transactions look a lot like spans, with around 100 unique values per request. In all of the transactions, we have around 2000 different keys. This data puts identifying information like IP address, user agent, customer-id, user-id but also puts rich data as customer plan. For each transaction, developers are free to put the data they want, but we review them to ensure no PII/UGC data ends up accidentally.</p>
+<p>Differentiating part is that all services use in-house libraries to interact with each other or external systems such as AWS DynamoDB, SQS. As those libraries are aware of the transaction context, they can put more data. To be more clear, when a transaction makes a read request to a resource, we automatically keep aggregated track of duration and counts per resource, i.e per table, per queue, per service. This looks like child-spans, but it&rsquo;s aggregated data. But having this data denormalized in the transaction context, allows us to query that data very fast. Engineers use <a href="https://newrelic.com/products/insights">NewRelic Insights</a> to query this data on-demand, and automated monitors use an optimized internal Elasticsearch cluster. Insights have been very helpful to filter and aggregate data regardless of cardinality, with its SQL-like language NRQL. A similar thing can be achieved with Elasticsearch too, however, aggregations are huge JSONs, and its SQL-to-JSON translator does not work well for our custom index type mapping, and Insights have great auto-complete for keys and values. We also exported <a href="https://mustafaakin.dev/posts/2019-12-12-how-to-export-kubernetes-events-for-observability-and-alerting/">Kubernetes events</a> (some-what structured events) to NR Insights and ability to query them was helpful.</p>
+<p>In short, our data looks like the following:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;traceID&#34;</span><span class="p">:</span> <span class="s2">&#34;&lt;id&gt;&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;name&#34;</span><span class="p">:</span> <span class="s2">&#34;SomeTransaction&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;timestamp&#34;</span><span class="p">:</span> <span class="s2">&#34;2021-09-07 15:25:46&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;service&#34;</span><span class="p">:</span> <span class="s2">&#34;alert-service&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;deployDate&#34;</span><span class="p">:</span> <span class="s2">&#34;2021-09-03 10:00:02&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;gitHash&#34;</span><span class="p">:</span> <span class="s2">&#34;aecdjg&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;ip&#34;</span><span class="p">:</span> <span class="s2">&#34;1.2.3.4&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;country&#34;</span><span class="p">:</span> <span class="s2">&#34;TR&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;useragent&#34;</span><span class="p">:</span> <span class="s2">&#34;Go-SDK 1.45&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;instanceID&#34;</span><span class="p">:</span> <span class="s2">&#34;i-1245&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;zone&#34;</span><span class="p">:</span> <span class="s2">&#34;us-west-2b&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;instanceType&#34;</span><span class="p">:</span> <span class="s2">&#34;c5.xlarge&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;customerId&#34;</span><span class="p">:</span> <span class="s2">&#34;&lt;uuid&gt;&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;userId&#34;</span><span class="p">:</span> <span class="s2">&#34;&lt;uuid&gt;&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;customerPlan&#34;</span><span class="p">:</span> <span class="s2">&#34;enterprise&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;customerUsers&#34;</span><span class="p">:</span> <span class="mi">135</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;integration&#34;</span><span class="p">:</span> <span class="s2">&#34;Cloudwatch&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;aws.dynamodb.total.count&#34;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;aws.dynamodb.total.duration&#34;</span><span class="p">:</span> <span class="mi">34</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;aws.dynamodb.alert.count&#34;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;aws.dynamodb.alert.duration&#34;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;aws.dynamodb.user.count&#34;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;aws.dynamodb.user.duration&#34;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;cache.user.count&#34;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>  
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;cache.user.duration&#34;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;service.x.count&#34;</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;service.x.duration&#34;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;rate.limit&#34;</span><span class="p">:</span> <span class="kc">false</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;http.response.code&#34;</span><span class="p">:</span> <span class="mi">200</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;duration&#34;</span><span class="p">:</span> <span class="mi">93</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>With this data present, we can ask most of the questions that would be useful to us for monitoring purposes, even during the incidents. For instance, finding out if any transactions have excessive usage of DynamoDB tables is a simple group by operation. With this data, we can slice &amp; dice (filter) to find out whether the problems are isolated to an endpoint, certain customers, an integration, a group of customers, an internal service, availability zones, instance types, etc. by filtering and aggregating it. Since those queries require no joins, many data stores can answer these types of queries very fast. And since we did not aggregate anything, you can decide to look for a min, max, or p99 on-demand, without pre-computing them and thinking which one would be most useful.</p>
+<p>What we have above can be achieved similarly by using tracing, putting the data in tags, and use them to query. We can do it either by denormalizing the data as it arrives, or use a capable SQL engine on top of it.</p>
+<p>Since at Opsgenie, we use minimal transactions, and the key values are meaningful inside a span only, denormalizing the external service interaction stats was the most effective choice for us. Also, if needed, it has the traceId linked so that we can jump to the tracing tool, considering it was not sampled due to cost concerns.</p>
+<h2 id="please-dont-stare-at-dashboards-automate-it">Please don&rsquo;t stare at dashboards, automate it</h2>
+<p>With the above data published to your capable data storage, you can easily construct dashboards. I&rsquo;m not a fan of dashboards. Reasons will come later. However, there can be somewhat useful dashboards, if you find yourself repeating those queries during incident investigations. For instance, seeing the trend of DynamoDB latencies among availability zones, or notification failures to certain devices, countries, customers can be useful for us.</p>
+<p>However, there is no point in getting 50+ inch screens to offices and additional monitors from your WFH budget and staring at them. Seriously. Stop it. I agree it&rsquo;s sometimes easier for a human to see a correlation, trend than to write an alarm in code, but please just try to automate it in any way you can. It&rsquo;s a waste of precious engineering time that can be spent on other things and a waste of electricity for the TV. In Opsgenie, there are thousands of alarms and around a hundred complex monitors that query the above key-value data and notifies the on-call.</p>
+<p>Those alarms have context on them and we still use the NewRelic Insights to drill down to further investigate demand. Main reason we use NewRelic Insights is that its NRQL language (familiarity with SQL) with superb auto-complete, it can complete both keys and values very fast, and helps you immensely during indident investigations you don&rsquo;t need to select anything from dropdown, it feels like talking. It looks like following:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">SELECT</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span><span class="w"> </span><span class="k">avg</span><span class="p">(</span><span class="n">duration</span><span class="p">),</span><span class="w"> </span><span class="n">percentile</span><span class="p">(</span><span class="n">aws</span><span class="p">.</span><span class="n">dynamodb</span><span class="p">.</span><span class="n">total</span><span class="p">.</span><span class="n">duration</span><span class="p">,</span><span class="w"> </span><span class="mi">95</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="k">Transaction</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">WHERE</span><span class="w"> </span><span class="n">customerPlan</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="p">(</span><span class="s1">&#39;lite&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;free&#39;</span><span class="p">)</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;Alert%&#39;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">FACET</span><span class="w"> </span><span class="n">customerId</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">SINCE</span><span class="w"> </span><span class="mi">30</span><span class="w"> </span><span class="n">minutes</span><span class="w"> </span><span class="n">ago</span><span class="w">
+</span></span></span></code></pre></div><p>It does not matter how many different monitors we have, it&rsquo;s always the one you did not prepare for, because the ones you know have already automated solutions to mitigate impacts. We take lessons on previous incidents and ask what additional data we could have exposed our TTD (time-to-detection) would be under a minute and TTR (time-to-resolve) would be shortened significantly. This practice always yields in additional values and automated monitors and we can sleep well at night, knowing we would be aware of problems before they get large and affect customers and they notify us.</p>
+
+</div>
+
+<h2>Comments</h2>
+<div id="disqus_thread"></div>
+<script>
+    window.disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "mustafaakindev" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </main>
+
+    
+      
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-163369693-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+    
+  </body>
+</html>

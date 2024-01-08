@@ -3,14 +3,14 @@
 <head>
   <link href="https://gmpg.org/xfn/11" rel="profile">
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <meta name="generator" content="Hugo 0.69.2" />
+  <meta name="generator" content="Hugo 0.121.2">
 
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:description" content="Originally appeared on Opsgenie Engineering Blog
- Network security is an essential topic for companies, as a compromised network is a direct threat to both users and the applications. The easiest way to maintain security is just blocking the unauthorized activity or only allowing the predetermined traffic. For instance, if you have an Elasticsearch cluster, there is no need to open ports other than 9200 and 9300 to your applications." />
+Network security is an essential topic for companies, as a compromised network is a direct threat to both users and the applications. The easiest way to maintain security is just blocking the unauthorized activity or only allowing the predetermined traffic. For instance, if you have an Elasticsearch cluster, there is no need to open ports other than 9200 and 9300 to your applications. However, as the number of components increase and the requirements of your software stack pile up, it becomes harder to allow the permissions correctly." />
   <meta name="twitter:title" content="Analyzing AWS VPC Flow Logs using Apache Parquet Files and Amazon Athena " />
   <meta name="twitter:site" content="@mustafaakin" />
   <meta name="twitter:creator" content="@mustafaakin" />
@@ -38,7 +38,7 @@
     <div class="sidebar-about">
       <a href=""><h1>Mustafa Akın</h1></a>
       <p class="lead">
-       SRE Architect @Atlassian Opsgenie, PhD Student @Bilkent University CS 
+       Co-founder at @Resmo, previously Principal SRE at @Atlassian, Opsgenie 
       </p>
     </div>
 
@@ -93,91 +93,91 @@ An example partitoning, column selection and filetering example: <strong><em>SEL
 Architecture of transforming VPC Flow logs to Parquet Files with Firehose and Lambda</p>
 <h3 id="implementation-details">Implementation Details</h3>
 <p>Now, we’ll see how we can create Parquet files with Java. Apache Parquet is officially supported on Java and C++. In our blog post, we have chosen Java to implement creating Parquet files from VPC flow logs, as AWS Lambda supports Java 8 and we are more comfortable with it. First of all, you have to include Parquet and Hadoop libraries in your dependency manager. In our case, we use Maven and you should add these dependencies:</p>
-<div class="highlight"><pre class="chroma"><code class="language-xml" data-lang="xml"><span class="nt">&lt;dependency&gt;</span>
-    <span class="nt">&lt;groupId&gt;</span>org.apache.parquet<span class="nt">&lt;/groupId&gt;</span>
-    <span class="nt">&lt;artifactId&gt;</span>parquet-common<span class="nt">&lt;/artifactId&gt;</span>
-    <span class="nt">&lt;version&gt;</span>1.9.0<span class="nt">&lt;/version&gt;</span>
-<span class="nt">&lt;/dependency&gt;</span>
-
-<span class="nt">&lt;dependency&gt;</span>
-    <span class="nt">&lt;groupId&gt;</span>org.apache.parquet<span class="nt">&lt;/groupId&gt;</span>
-    <span class="nt">&lt;artifactId&gt;</span>parquet-avro<span class="nt">&lt;/artifactId&gt;</span>
-    <span class="nt">&lt;version&gt;</span>1.9.0<span class="nt">&lt;/version&gt;</span>
-<span class="nt">&lt;/dependency&gt;</span>
-
-<span class="nt">&lt;dependency&gt;</span>
-    <span class="nt">&lt;groupId&gt;</span>org.apache.parquet<span class="nt">&lt;/groupId&gt;</span>
-    <span class="nt">&lt;artifactId&gt;</span>parquet-hadoop<span class="nt">&lt;/artifactId&gt;</span>
-    <span class="nt">&lt;version&gt;</span>1.9.0<span class="nt">&lt;/version&gt;</span>
-<span class="nt">&lt;/dependency&gt;</span>
-
-<span class="nt">&lt;dependency&gt;</span>
-    <span class="nt">&lt;groupId&gt;</span>org.apache.hadoop<span class="nt">&lt;/groupId&gt;</span>
-    <span class="nt">&lt;artifactId&gt;</span>hadoop-common<span class="nt">&lt;/artifactId&gt;</span>
-    <span class="nt">&lt;version&gt;</span>2.7.3<span class="nt">&lt;/version&gt;</span>
-<span class="nt">&lt;/dependency&gt;</span>
-</code></pre></div><p>Beware that Hadoop libraries are large, and your JAR files can become too clumsy. You can exclude some libraries in our case, but it is left as an exercise to you since our resulting function code is under 50MB.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl"><span class="nt">&lt;dependency&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;groupId&gt;</span>org.apache.parquet<span class="nt">&lt;/groupId&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;artifactId&gt;</span>parquet-common<span class="nt">&lt;/artifactId&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;version&gt;</span>1.9.0<span class="nt">&lt;/version&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/dependency&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;dependency&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;groupId&gt;</span>org.apache.parquet<span class="nt">&lt;/groupId&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;artifactId&gt;</span>parquet-avro<span class="nt">&lt;/artifactId&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;version&gt;</span>1.9.0<span class="nt">&lt;/version&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/dependency&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;dependency&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;groupId&gt;</span>org.apache.parquet<span class="nt">&lt;/groupId&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;artifactId&gt;</span>parquet-hadoop<span class="nt">&lt;/artifactId&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;version&gt;</span>1.9.0<span class="nt">&lt;/version&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/dependency&gt;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;dependency&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;groupId&gt;</span>org.apache.hadoop<span class="nt">&lt;/groupId&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;artifactId&gt;</span>hadoop-common<span class="nt">&lt;/artifactId&gt;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&lt;version&gt;</span>2.7.3<span class="nt">&lt;/version&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/dependency&gt;</span>
+</span></span></code></pre></div><p>Beware that Hadoop libraries are large, and your JAR files can become too clumsy. You can exclude some libraries in our case, but it is left as an exercise to you since our resulting function code is under 50MB.</p>
 <p>We defined our Flow Logs as a POJO (Plain Old Java Object) with proper getters and setters. Parquet files require strict schemas, so they need to be defined when opening a new file writer. Parquet includes a helper function that can use reflection to generate schema like JSON encoding libraries. The following code generates a Parquet writer for your POJO:</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">Configuration</span> <span class="n">conf</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Configuration</span><span class="o">();</span>
-<span class="n">Path</span> <span class="n">p</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Path</span><span class="o">(</span><span class="s">&#34;data.parquet&#34;</span><span class="o">);</span> <span class="c1">// This is not java.nio.file.Path     
-</span><span class="c1"></span>
-<span class="n">ParquetWriter</span><span class="o">&lt;</span><span class="n">FlowLogs</span><span class="o">&gt;</span> <span class="n">writer</span> <span class="o">=</span> <span class="n">AvroParquetWriter</span><span class="o">.&lt;</span><span class="n">FlowLog</span><span class="o">&gt;</span><span class="n">builder</span><span class="o">(</span><span class="n">p</span><span class="o">)</span>
-    <span class="o">.</span><span class="na">withSchema</span><span class="o">(</span><span class="n">ReflectData</span><span class="o">.</span><span class="na">AllowNull</span><span class="o">.</span><span class="na">get</span><span class="o">().</span><span class="na">getSchema</span><span class="o">(</span><span class="n">FlowLog</span><span class="o">.</span><span class="na">class</span><span class="o">))</span>
-    <span class="o">.</span><span class="na">withDataModel</span><span class="o">(</span><span class="n">ReflectData</span><span class="o">.</span><span class="na">get</span><span class="o">())</span>
-    <span class="o">.</span><span class="na">withConf</span><span class="o">(</span><span class="n">conf</span><span class="o">)</span>
-    <span class="o">.</span><span class="na">withCompressionCodec</span><span class="o">(</span><span class="n">CompressionCodecName</span><span class="o">.</span><span class="na">SNAPPY</span><span class="o">)</span>
-    <span class="o">.</span><span class="na">withWriteMode</span><span class="o">(</span><span class="n">Mode</span><span class="o">.</span><span class="na">OVERWRITE</span><span class="o">)</span>
-    <span class="o">.</span><span class="na">build</span><span class="o">();</span>
-
-<span class="n">FlowLog</span> <span class="n">flowLog</span> <span class="o">=</span> <span class="k">new</span> <span class="n">FlowLog</span><span class="o">().</span><span class="na">setVersion</span><span class="o">(...)</span>
-<span class="n">writer</span><span class="o">.</span><span class="na">write</span><span class="o">(</span><span class="n">flowLog</span><span class="o">)</span>
-</code></pre></div><p>If you do not want to use Reflection, you can also generate a Schema by hand. However, it is more verbose, and you need to be more careful. You will have complete control over your schema. Reflection will fail to encode generic maps, i.e., you can’t correctly encode Map&lt;String,Object&gt; to Parquet. However, you can have inner objects with proper serializable fields. Parquet handles nested data correctly if done correctly.</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">SchemaBuilder</span><span class="o">.</span><span class="na">RecordBuilder</span><span class="o">&lt;</span><span class="n">Schema</span><span class="o">&gt;</span> <span class="n">builder</span> <span class="o">=</span> <span class="n">SchemaBuilder</span>
-        <span class="o">.</span><span class="na">record</span><span class="o">(</span><span class="s">&#34;flow_logs&#34;</span><span class="o">).</span><span class="na">namespace</span><span class="o">(</span><span class="s">&#34;com.opsgenie&#34;</span><span class="o">);</span>
-
-<span class="n">schema</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="na">fields</span><span class="o">()</span>
-    <span class="o">.</span><span class="na">name</span><span class="o">(</span><span class="s">&#34;version&#34;</span><span class="o">).</span><span class="na">type</span><span class="o">().</span><span class="na">intType</span><span class="o">().</span><span class="na">intDefault</span><span class="o">(</span><span class="n">0</span><span class="o">)</span>
-    <span class="o">.</span><span class="na">name</span><span class="o">(</span><span class="s">&#34;account&#34;</span><span class="o">).</span><span class="na">type</span><span class="o">().</span><span class="na">stringType</span><span class="o">().</span><span class="na">stringDefault</span><span class="o">(</span><span class="s">&#34;&#34;</span><span class="o">)</span>
-    <span class="o">.</span><span class="na">name</span><span class="o">(</span><span class="s">&#34;interfaceId&#34;</span><span class="o">).</span><span class="na">type</span><span class="o">().</span><span class="na">stringType</span><span class="o">().</span><span class="na">stringDefault</span><span class="o">(</span><span class="s">&#34;&#34;</span><span class="o">)</span>
-    <span class="o">.</span><span class="na">name</span><span class="o">(</span><span class="s">&#34;sourceAddress&#34;</span><span class="o">).</span><span class="na">type</span><span class="o">().</span><span class="na">stringType</span><span class="o">().</span><span class="na">stringDefault</span><span class="o">(</span><span class="s">&#34;&#34;</span><span class="o">)</span>
-    <span class="c1">// continues for remaining 10 fields..
-</span><span class="c1"></span>
-<span class="n">ParquetWriter</span><span class="o">&lt;</span><span class="n">FlowLogs</span><span class="o">&gt;</span> <span class="n">writer</span> <span class="o">=</span> <span class="n">AvroParquetWriter</span><span class="o">.&lt;</span><span class="n">FlowLog</span><span class="o">&gt;</span><span class="n">builder</span><span class="o">(</span><span class="n">p</span><span class="o">)</span>
-    <span class="o">.</span><span class="na">withSchema</span><span class="o">(</span><span class="n">schema</span><span class="o">)</span>
-    <span class="o">.</span><span class="na">withConf</span><span class="o">(</span><span class="n">conf</span><span class="o">)</span>
-    <span class="o">.</span><span class="na">withCompressionCodec</span><span class="o">(</span><span class="n">CompressionCodecName</span><span class="o">.</span><span class="na">SNAPPY</span><span class="o">)</span>
-    <span class="o">.</span><span class="na">withWriteMode</span><span class="o">(</span><span class="n">Mode</span><span class="o">.</span><span class="na">OVERWRITE</span><span class="o">)</span>
-    <span class="o">.</span><span class="na">build</span><span class="o">();</span>
-
-<span class="n">GenericData</span><span class="o">.</span><span class="na">Record</span> <span class="n">record</span> <span class="o">=</span> <span class="k">new</span> <span class="n">GenericData</span><span class="o">.</span><span class="na">Record</span><span class="o">(</span><span class="n">schema</span><span class="o">);</span>
-    <span class="n">record</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">&#34;version&#34;</span><span class="o">,</span> <span class="n">log</span><span class="o">.</span><span class="na">getVersion</span><span class="o">());</span>
-    <span class="n">record</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">&#34;account&#34;</span><span class="o">,</span> <span class="n">log</span><span class="o">.</span><span class="na">getAccount</span><span class="o">());</span>
-    <span class="n">record</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">&#34;interfaceId&#34;</span><span class="o">,</span> <span class="n">log</span><span class="o">.</span><span class="na">getInterfaceId</span><span class="o">());</span>
-    <span class="n">record</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">&#34;sourceAddress&#34;</span><span class="o">,</span> <span class="n">log</span><span class="o">.</span><span class="na">getSourceAddress</span><span class="o">());</span>
-    <span class="c1">// continues for remaining 10 fields..
-</span><span class="c1"></span>
-<span class="n">writer</span><span class="o">.</span><span class="na">write</span><span class="o">(</span><span class="n">record</span><span class="o">)</span>
-</code></pre></div><p>Performance-wise, they are not significantly different, since most time is spent on compression and encoding. The overhead of reflection becomes negligible. Parquet files are cached in memory before written to a file, so you need to ensure that the total data can fit into memory. Parquet can flush the memory contents once in a while. However, it will affect the compression ratios.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="n">Configuration</span><span class="w"> </span><span class="n">conf</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Configuration</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">Path</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Path</span><span class="p">(</span><span class="s">&#34;data.parquet&#34;</span><span class="p">);</span><span class="w"> </span><span class="c1">// This is not java.nio.file.Path     </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">ParquetWriter</span><span class="o">&lt;</span><span class="n">FlowLogs</span><span class="o">&gt;</span><span class="w"> </span><span class="n">writer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">AvroParquetWriter</span><span class="p">.</span><span class="o">&lt;</span><span class="n">FlowLog</span><span class="o">&gt;</span><span class="n">builder</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">.</span><span class="na">withSchema</span><span class="p">(</span><span class="n">ReflectData</span><span class="p">.</span><span class="na">AllowNull</span><span class="p">.</span><span class="na">get</span><span class="p">().</span><span class="na">getSchema</span><span class="p">(</span><span class="n">FlowLog</span><span class="p">.</span><span class="na">class</span><span class="p">))</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">.</span><span class="na">withDataModel</span><span class="p">(</span><span class="n">ReflectData</span><span class="p">.</span><span class="na">get</span><span class="p">())</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">.</span><span class="na">withConf</span><span class="p">(</span><span class="n">conf</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">.</span><span class="na">withCompressionCodec</span><span class="p">(</span><span class="n">CompressionCodecName</span><span class="p">.</span><span class="na">SNAPPY</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">.</span><span class="na">withWriteMode</span><span class="p">(</span><span class="n">Mode</span><span class="p">.</span><span class="na">OVERWRITE</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">.</span><span class="na">build</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">FlowLog</span><span class="w"> </span><span class="n">flowLog</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">FlowLog</span><span class="p">().</span><span class="na">setVersion</span><span class="p">(...)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">writer</span><span class="p">.</span><span class="na">write</span><span class="p">(</span><span class="n">flowLog</span><span class="p">)</span><span class="w">
+</span></span></span></code></pre></div><p>If you do not want to use Reflection, you can also generate a Schema by hand. However, it is more verbose, and you need to be more careful. You will have complete control over your schema. Reflection will fail to encode generic maps, i.e., you can’t correctly encode Map&lt;String,Object&gt; to Parquet. However, you can have inner objects with proper serializable fields. Parquet handles nested data correctly if done correctly.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="n">SchemaBuilder</span><span class="p">.</span><span class="na">RecordBuilder</span><span class="o">&lt;</span><span class="n">Schema</span><span class="o">&gt;</span><span class="w"> </span><span class="n">builder</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SchemaBuilder</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">.</span><span class="na">record</span><span class="p">(</span><span class="s">&#34;flow_logs&#34;</span><span class="p">).</span><span class="na">namespace</span><span class="p">(</span><span class="s">&#34;com.opsgenie&#34;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">schema</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">builder</span><span class="p">.</span><span class="na">fields</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">.</span><span class="na">name</span><span class="p">(</span><span class="s">&#34;version&#34;</span><span class="p">).</span><span class="na">type</span><span class="p">().</span><span class="na">intType</span><span class="p">().</span><span class="na">intDefault</span><span class="p">(</span><span class="n">0</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">.</span><span class="na">name</span><span class="p">(</span><span class="s">&#34;account&#34;</span><span class="p">).</span><span class="na">type</span><span class="p">().</span><span class="na">stringType</span><span class="p">().</span><span class="na">stringDefault</span><span class="p">(</span><span class="s">&#34;&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">.</span><span class="na">name</span><span class="p">(</span><span class="s">&#34;interfaceId&#34;</span><span class="p">).</span><span class="na">type</span><span class="p">().</span><span class="na">stringType</span><span class="p">().</span><span class="na">stringDefault</span><span class="p">(</span><span class="s">&#34;&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">.</span><span class="na">name</span><span class="p">(</span><span class="s">&#34;sourceAddress&#34;</span><span class="p">).</span><span class="na">type</span><span class="p">().</span><span class="na">stringType</span><span class="p">().</span><span class="na">stringDefault</span><span class="p">(</span><span class="s">&#34;&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// continues for remaining 10 fields..</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">ParquetWriter</span><span class="o">&lt;</span><span class="n">FlowLogs</span><span class="o">&gt;</span><span class="w"> </span><span class="n">writer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">AvroParquetWriter</span><span class="p">.</span><span class="o">&lt;</span><span class="n">FlowLog</span><span class="o">&gt;</span><span class="n">builder</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">.</span><span class="na">withSchema</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">.</span><span class="na">withConf</span><span class="p">(</span><span class="n">conf</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">.</span><span class="na">withCompressionCodec</span><span class="p">(</span><span class="n">CompressionCodecName</span><span class="p">.</span><span class="na">SNAPPY</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">.</span><span class="na">withWriteMode</span><span class="p">(</span><span class="n">Mode</span><span class="p">.</span><span class="na">OVERWRITE</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">.</span><span class="na">build</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">GenericData</span><span class="p">.</span><span class="na">Record</span><span class="w"> </span><span class="n">record</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">GenericData</span><span class="p">.</span><span class="na">Record</span><span class="p">(</span><span class="n">schema</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">record</span><span class="err">.</span><span class="nc">put</span><span class="p">(</span><span class="s">&#34;version&#34;</span><span class="p">,</span><span class="w"> </span><span class="n">log</span><span class="p">.</span><span class="na">getVersion</span><span class="p">());</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">record</span><span class="err">.</span><span class="nc">put</span><span class="p">(</span><span class="s">&#34;account&#34;</span><span class="p">,</span><span class="w"> </span><span class="n">log</span><span class="p">.</span><span class="na">getAccount</span><span class="p">());</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">record</span><span class="err">.</span><span class="nc">put</span><span class="p">(</span><span class="s">&#34;interfaceId&#34;</span><span class="p">,</span><span class="w"> </span><span class="n">log</span><span class="p">.</span><span class="na">getInterfaceId</span><span class="p">());</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">record</span><span class="err">.</span><span class="nc">put</span><span class="p">(</span><span class="s">&#34;sourceAddress&#34;</span><span class="p">,</span><span class="w"> </span><span class="n">log</span><span class="p">.</span><span class="na">getSourceAddress</span><span class="p">());</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// continues for remaining 10 fields..</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">writer</span><span class="p">.</span><span class="na">write</span><span class="p">(</span><span class="n">record</span><span class="p">)</span><span class="w">
+</span></span></span></code></pre></div><p>Performance-wise, they are not significantly different, since most time is spent on compression and encoding. The overhead of reflection becomes negligible. Parquet files are cached in memory before written to a file, so you need to ensure that the total data can fit into memory. Parquet can flush the memory contents once in a while. However, it will affect the compression ratios.</p>
 <p>To create a table in Athena, you need to execute the following query:</p>
-<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="k">CREATE</span> <span class="k">EXTERNAL</span> <span class="k">TABLE</span> <span class="o">`</span><span class="n">flows</span><span class="o">`</span><span class="p">(</span>
-  <span class="o">`</span><span class="k">version</span><span class="o">`</span> <span class="nb">int</span><span class="p">,</span> 
-  <span class="o">`</span><span class="n">account</span><span class="o">`</span> <span class="n">string</span><span class="p">,</span> 
-  <span class="o">`</span><span class="n">interfaceid</span><span class="o">`</span> <span class="n">string</span><span class="p">,</span> 
-  <span class="o">`</span><span class="n">sourceaddress</span><span class="o">`</span> <span class="n">string</span><span class="p">,</span> 
-  <span class="o">`</span><span class="n">destinationaddress</span><span class="o">`</span> <span class="n">string</span><span class="p">,</span> 
-  <span class="o">`</span><span class="n">sourceport</span><span class="o">`</span> <span class="nb">int</span><span class="p">,</span> 
-  <span class="o">`</span><span class="n">destinationport</span><span class="o">`</span> <span class="nb">int</span><span class="p">,</span> 
-  <span class="o">`</span><span class="n">protocol</span><span class="o">`</span> <span class="nb">int</span><span class="p">,</span> 
-  <span class="o">`</span><span class="n">packets</span><span class="o">`</span> <span class="nb">int</span><span class="p">,</span> 
-  <span class="o">`</span><span class="n">bytes</span><span class="o">`</span> <span class="nb">int</span><span class="p">,</span> 
-  <span class="o">`</span><span class="n">starttime</span><span class="o">`</span> <span class="k">timestamp</span><span class="p">,</span> 
-  <span class="o">`</span><span class="n">endtime</span><span class="o">`</span> <span class="k">timestamp</span><span class="p">,</span> 
-  <span class="o">`</span><span class="n">action</span><span class="o">`</span> <span class="n">string</span><span class="p">,</span> 
-  <span class="o">`</span><span class="n">logstatus</span><span class="o">`</span> <span class="n">string</span><span class="p">)</span>
-<span class="n">STORED</span> <span class="k">AS</span> <span class="n">PARQUET</span>
-<span class="k">LOCATION</span> <span class="s1">&#39;s3://mybucket/myflowlogs&#39;</span>
-<span class="n">tblproperties</span> <span class="p">(</span><span class="s2">&#34;parquet.compress&#34;</span><span class="o">=</span><span class="s2">&#34;SNAPPY&#34;</span><span class="p">);</span>
-</code></pre></div><p>That’s it. The above code generates a Parquet file, ready to be written to S3. No need for Spark or Mapreduce jobs when you have an AWS Lambda function! After you define your table in Athena, you can query them. You can make use of partitioning by putting the files in proper folders as described in the documentation and tell Athena about new partitions as they arrive. One important note is that, if you have set a small buffer, you will generate many small Parquet files. They will negatively affect the performance of Athena queries since you will need to read lots of files. You might still want to use small buffers for reducing the delays if you are time-sensitive, but another Lambda function should take the small files in your partitions and merge them to larger files.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">CREATE</span><span class="w"> </span><span class="k">EXTERNAL</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="o">`</span><span class="n">flows</span><span class="o">`</span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="o">`</span><span class="k">version</span><span class="o">`</span><span class="w"> </span><span class="nb">int</span><span class="p">,</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="o">`</span><span class="n">account</span><span class="o">`</span><span class="w"> </span><span class="n">string</span><span class="p">,</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="o">`</span><span class="n">interfaceid</span><span class="o">`</span><span class="w"> </span><span class="n">string</span><span class="p">,</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="o">`</span><span class="n">sourceaddress</span><span class="o">`</span><span class="w"> </span><span class="n">string</span><span class="p">,</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="o">`</span><span class="n">destinationaddress</span><span class="o">`</span><span class="w"> </span><span class="n">string</span><span class="p">,</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="o">`</span><span class="n">sourceport</span><span class="o">`</span><span class="w"> </span><span class="nb">int</span><span class="p">,</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="o">`</span><span class="n">destinationport</span><span class="o">`</span><span class="w"> </span><span class="nb">int</span><span class="p">,</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="o">`</span><span class="n">protocol</span><span class="o">`</span><span class="w"> </span><span class="nb">int</span><span class="p">,</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="o">`</span><span class="n">packets</span><span class="o">`</span><span class="w"> </span><span class="nb">int</span><span class="p">,</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="o">`</span><span class="n">bytes</span><span class="o">`</span><span class="w"> </span><span class="nb">int</span><span class="p">,</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="o">`</span><span class="n">starttime</span><span class="o">`</span><span class="w"> </span><span class="k">timestamp</span><span class="p">,</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="o">`</span><span class="n">endtime</span><span class="o">`</span><span class="w"> </span><span class="k">timestamp</span><span class="p">,</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="o">`</span><span class="n">action</span><span class="o">`</span><span class="w"> </span><span class="n">string</span><span class="p">,</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="o">`</span><span class="n">logstatus</span><span class="o">`</span><span class="w"> </span><span class="n">string</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">STORED</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">PARQUET</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">LOCATION</span><span class="w"> </span><span class="s1">&#39;s3://mybucket/myflowlogs&#39;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">tblproperties</span><span class="w"> </span><span class="p">(</span><span class="s2">&#34;parquet.compress&#34;</span><span class="o">=</span><span class="s2">&#34;SNAPPY&#34;</span><span class="p">);</span><span class="w">
+</span></span></span></code></pre></div><p>That’s it. The above code generates a Parquet file, ready to be written to S3. No need for Spark or Mapreduce jobs when you have an AWS Lambda function! After you define your table in Athena, you can query them. You can make use of partitioning by putting the files in proper folders as described in the documentation and tell Athena about new partitions as they arrive. One important note is that, if you have set a small buffer, you will generate many small Parquet files. They will negatively affect the performance of Athena queries since you will need to read lots of files. You might still want to use small buffers for reducing the delays if you are time-sensitive, but another Lambda function should take the small files in your partitions and merge them to larger files.</p>
 <p>You can use Parquet files not just in Flow logs, but also to convert other AWS service logs such as ELB logs, Cloudfront logs, Cloudtrail logs. Moreover, you can use these files for your data and connect Athena to BI tools and get insane scalability at minimal cost.</p>
 <h3 id="flow-analysis-with-sqlqueries">Flow analysis with SQL Queries</h3>
 <p>Now, back to our main goal. The reason we used the implementation above was to reduce the file size with Parquet to make the flow log analysis fast &amp; cost efficient. We have approximately 10 GB of flow logs as Parquet files (~240 GB uncompressed JSON format). We ran our code in a demo environment for a month to share some anonymized analysis to our fellow readers. Please note that, there are too many small Parquet files, and if you were to merge those files into bigger Parquet files, it would take much less time. You can spin up another lambda for that purpose, too!</p>
@@ -193,8 +193,8 @@ Architecture of transforming VPC Flow logs to Parquet Files with Firehose and L
 
 <h2>Comments</h2>
 <div id="disqus_thread"></div>
-<script type="application/javascript">
-    var disqus_config = function () {
+<script>
+    window.disqus_config = function () {
     
     
     
@@ -216,7 +216,7 @@ Architecture of transforming VPC Flow logs to Parquet Files with Firehose and L
 
     
       
-<script type="application/javascript">
+<script>
 var doNotTrack = false;
 if (!doNotTrack) {
 	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;

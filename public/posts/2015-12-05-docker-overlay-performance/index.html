@@ -3,7 +3,7 @@
 <head>
   <link href="https://gmpg.org/xfn/11" rel="profile">
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <meta name="generator" content="Hugo 0.69.2" />
+  <meta name="generator" content="Hugo 0.121.2">
 
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -37,7 +37,7 @@
     <div class="sidebar-about">
       <a href=""><h1>Mustafa Akın</h1></a>
       <p class="lead">
-       SRE Architect @Atlassian Opsgenie, PhD Student @Bilkent University CS 
+       Co-founder at @Resmo, previously Principal SRE at @Atlassian, Opsgenie 
       </p>
     </div>
 
@@ -57,149 +57,149 @@
   <p>Since Docker 1.9, the multi-host networks can be used very easily. All you have to do is just setup your Swarm cluster and use <code>docker network create -d mynet</code> and voila: Your multi host network is ready. I want to do a benchmark of this new feature, however, the official multi host networking examples are in Virtualbox and local performance can be misleading. I created an image called <code>mustafaakin/alpine-iperf</code> just has the Alpine image plus iperf network benchmarking tool installed. Resulting image is very tiny, around 7 MB. I measured the speed of both a  Virtualbox and DigitalOcean Swarm cluster. Just ensure docker-machine and latest docker client is installed in your machine.</p>
 <h2 id="creating-swarms">Creating Swarms</h2>
 <p>To create a Swarm using VirtualBox:</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash"><span class="c1"># Create Key Store Node</span>
-docker-machine create -d virtualbox mh-keystore-vb
-docker <span class="k">$(</span>docker-machine config mh-keystore-vb<span class="k">)</span> run -d <span class="se">\
-</span><span class="se"></span>    -p <span class="s2">&#34;8500:8500&#34;</span> <span class="se">\
-</span><span class="se"></span>    -h <span class="s2">&#34;consul&#34;</span> <span class="se">\
-</span><span class="se"></span>    progrium/consul -server -bootstrap
-
-<span class="c1"># Create Primary Node</span>
-docker-machine create <span class="se">\
-</span><span class="se"></span>	-d virtualbox <span class="se">\
-</span><span class="se"></span>	--swarm --swarm-master <span class="se">\
-</span><span class="se"></span>	--swarm-discovery<span class="o">=</span><span class="s2">&#34;consul://</span><span class="k">$(</span>docker-machine ip mh-keystore-vb<span class="k">)</span><span class="s2">:8500&#34;</span> <span class="se">\
-</span><span class="se"></span>	--engine-opt<span class="o">=</span><span class="s2">&#34;cluster-store=consul://</span><span class="k">$(</span>docker-machine ip mh-keystore-vb<span class="k">)</span><span class="s2">:8500&#34;</span> <span class="se">\
-</span><span class="se"></span>	--engine-opt<span class="o">=</span><span class="s2">&#34;cluster-advertise=eth1:2376&#34;</span> <span class="se">\
-</span><span class="se"></span>	mhs-demo0-vb
-
-<span class="c1"># Create Secondary Node</span>
-docker-machine create -d virtualbox <span class="se">\
-</span><span class="se"></span>    --swarm <span class="se">\
-</span><span class="se"></span>    --swarm-discovery<span class="o">=</span><span class="s2">&#34;consul://</span><span class="k">$(</span>docker-machine ip mh-keystore-vb<span class="k">)</span><span class="s2">:8500&#34;</span> <span class="se">\
-</span><span class="se"></span>    --engine-opt<span class="o">=</span><span class="s2">&#34;cluster-store=consul://</span><span class="k">$(</span>docker-machine ip mh-keystore-vb<span class="k">)</span><span class="s2">:8500&#34;</span> <span class="se">\
-</span><span class="se"></span>    --engine-opt<span class="o">=</span><span class="s2">&#34;cluster-advertise=eth1:2376&#34;</span> <span class="se">\
-</span><span class="se"></span>  	mhs-demo1-vb
-</code></pre></div><p>To do in DigitalOcean: (we need a fairly new kernel for VXLAN, default value is Ubuntu 14.04 but its kernel is fairly old)</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">// replace it with your own token
-<span class="nv">TOKEN</span><span class="o">=</span>aaa12a00f2f264727a4c5436c070d58477cd6d5f13a0379955901c4a962e9ee2 
-
-<span class="c1"># Create Key Store Node</span>
-docker-machine create --driver digitalocean <span class="se">\
-</span><span class="se"></span>	--digitalocean-access-token<span class="o">=</span><span class="nv">$TOKEN</span> <span class="se">\
-</span><span class="se"></span>	--digitalocean-region<span class="o">=</span>ams3 mh-keystore-do		
-docker <span class="k">$(</span>docker-machine config mh-keystore-do<span class="k">)</span> run -d <span class="se">\
-</span><span class="se"></span>    -p <span class="s2">&#34;8500:8500&#34;</span> <span class="se">\
-</span><span class="se"></span>    -h <span class="s2">&#34;consul&#34;</span> <span class="se">\
-</span><span class="se"></span>    progrium/consul -server -bootstrap    
-
-<span class="c1"># Create Primary Node</span>
-docker-machine create <span class="se">\
-</span><span class="se"></span>	--driver digitalocean <span class="se">\
-</span><span class="se"></span>	--digitalocean-access-token<span class="o">=</span><span class="nv">$TOKEN</span> <span class="se">\
-</span><span class="se"></span>	--digitalocean-region<span class="o">=</span>ams3  <span class="se">\
-</span><span class="se"></span>	--digitalocean-image<span class="o">=</span>debian-8-x64 <span class="se">\
-</span><span class="se"></span>	--swarm --swarm-master <span class="se">\
-</span><span class="se"></span>	--swarm-discovery<span class="o">=</span><span class="s2">&#34;consul://</span><span class="k">$(</span>docker-machine ip mh-keystore-do<span class="k">)</span><span class="s2">:8500&#34;</span> <span class="se">\
-</span><span class="se"></span>	--engine-opt<span class="o">=</span><span class="s2">&#34;cluster-store=consul://</span><span class="k">$(</span>docker-machine ip mh-keystore-do<span class="k">)</span><span class="s2">:8500&#34;</span> <span class="se">\
-</span><span class="se"></span>	--engine-opt<span class="o">=</span><span class="s2">&#34;cluster-advertise=eth0:2376&#34;</span> <span class="se">\
-</span><span class="se"></span>	mhs-demo0-do
-
-<span class="c1"># Create Secondary Node</span>
-docker-machine create <span class="se">\
-</span><span class="se"></span>	--driver digitalocean <span class="se">\
-</span><span class="se"></span>	--digitalocean-access-token<span class="o">=</span><span class="nv">$TOKEN</span> <span class="se">\
-</span><span class="se"></span>	--digitalocean-region<span class="o">=</span>ams3 <span class="se">\
-</span><span class="se"></span>	--digitalocean-image<span class="o">=</span>debian-8-x64 <span class="se">\
-</span><span class="se"></span>	--swarm <span class="se">\
-</span><span class="se"></span>    --swarm-discovery<span class="o">=</span><span class="s2">&#34;consul://</span><span class="k">$(</span>docker-machine ip mh-keystore-do<span class="k">)</span><span class="s2">:8500&#34;</span> <span class="se">\
-</span><span class="se"></span>    --engine-opt<span class="o">=</span><span class="s2">&#34;cluster-store=consul://</span><span class="k">$(</span>docker-machine ip mh-keystore-do<span class="k">)</span><span class="s2">:8500&#34;</span> <span class="se">\
-</span><span class="se"></span>    --engine-opt<span class="o">=</span><span class="s2">&#34;cluster-advertise=eth0:2376&#34;</span> <span class="se">\
-</span><span class="se"></span>  	mhs-demo1-do
-</code></pre></div><p>With above configs, we create 3 machines, 1 key-value store (consul) for discovery and 1 Swarm master, and 1 additional Swarm node. To use them, you just point to the right swarm master. If you want to point to local Swarm master, all you have to do is the following:</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">$ <span class="nb">eval</span> <span class="k">$(</span>docker-machine env --swarm mhs-demo0-vb<span class="k">)</span>
-$ docker info
-Containers: <span class="m">60</span>
-Images: <span class="m">7</span>
-Role: primary
-Strategy: spread
-Filters: health, port, dependency, affinity, constraint
-Nodes: <span class="m">2</span>
- mhs-demo0-vb: 192.168.99.101:2376
-  └ Containers: <span class="m">16</span>
-  └ Reserved CPUs: <span class="m">0</span> / <span class="m">1</span>
-  └ Reserved Memory: <span class="m">0</span> B / 1.021 GiB
-  └ Labels: <span class="nv">executiondriver</span><span class="o">=</span>native-0.2, <span class="nv">kernelversion</span><span class="o">=</span>4.1.13-boot2docker, <span class="nv">operatingsystem</span><span class="o">=</span>Boot2Docker 1.9.1 <span class="o">(</span>TCL 6.4.1<span class="o">)</span><span class="p">;</span> master : cef800b - Fri Nov <span class="m">20</span> 19:33:59 UTC 2015, <span class="nv">provider</span><span class="o">=</span>virtualbox, <span class="nv">storagedriver</span><span class="o">=</span>aufs
- mhs-demo1-vb: 192.168.99.102:2376
-  └ Containers: <span class="m">44</span>
-  └ Reserved CPUs: <span class="m">0</span> / <span class="m">1</span>
-  └ Reserved Memory: <span class="m">0</span> B / 1.021 GiB
-  └ Labels: <span class="nv">executiondriver</span><span class="o">=</span>native-0.2, <span class="nv">kernelversion</span><span class="o">=</span>4.1.13-boot2docker, <span class="nv">operatingsystem</span><span class="o">=</span>Boot2Docker 1.9.1 <span class="o">(</span>TCL 6.4.1<span class="o">)</span><span class="p">;</span> master : cef800b - Fri Nov <span class="m">20</span> 19:33:59 UTC 2015, <span class="nv">provider</span><span class="o">=</span>virtualbox, <span class="nv">storagedriver</span><span class="o">=</span>aufs
-CPUs: <span class="m">2</span>
-Total Memory: 2.043 GiB
-Name: 8d66756b3509
-</code></pre></div><p>And also for DigitalOcean the following is enough:</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">$ <span class="nb">eval</span> <span class="k">$(</span>docker-machine env --swarm mhs-demo0-do<span class="k">)</span>
-$ docker info
-Containers: <span class="m">3</span>
-Images: <span class="m">2</span>
-Role: primary
-Strategy: spread
-Filters: health, port, dependency, affinity, constraint
-Nodes: <span class="m">2</span>
- mhs-demo0-do: 188.166.113.176:2376
-  └ Containers: <span class="m">2</span>
-  └ Reserved CPUs: <span class="m">0</span> / <span class="m">1</span>
-  └ Reserved Memory: <span class="m">0</span> B / 519.2 MiB
-  └ Labels: <span class="nv">executiondriver</span><span class="o">=</span>native-0.2, <span class="nv">kernelversion</span><span class="o">=</span>3.16.0-4-amd64, <span class="nv">operatingsystem</span><span class="o">=</span>Debian GNU/Linux <span class="m">8</span> <span class="o">(</span>jessie<span class="o">)</span>, <span class="nv">provider</span><span class="o">=</span>digitalocean, <span class="nv">storagedriver</span><span class="o">=</span>aufs
- mhs-demo1-do: 178.62.230.66:2376
-  └ Containers: <span class="m">1</span>
-  └ Reserved CPUs: <span class="m">0</span> / <span class="m">1</span>
-  └ Reserved Memory: <span class="m">0</span> B / 519.2 MiB
-  └ Labels: <span class="nv">executiondriver</span><span class="o">=</span>native-0.2, <span class="nv">kernelversion</span><span class="o">=</span>3.16.0-4-amd64, <span class="nv">operatingsystem</span><span class="o">=</span>Debian GNU/Linux <span class="m">8</span> <span class="o">(</span>jessie<span class="o">)</span>, <span class="nv">provider</span><span class="o">=</span>digitalocean, <span class="nv">storagedriver</span><span class="o">=</span>aufs
-CPUs: <span class="m">2</span>
-Total Memory: 1.014 GiB
-Name: 61b80edc00a0
-</code></pre></div><p><strong>Note:</strong> The reason I have chosen Debian Jessie is proper VXLAN functionality. We need a recent kernel and default value of DigitalOcean image uses 14.04 which has kernel 3.13 and updating it requires a reboot.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Create Key Store Node</span>
+</span></span><span class="line"><span class="cl">docker-machine create -d virtualbox mh-keystore-vb
+</span></span><span class="line"><span class="cl">docker <span class="k">$(</span>docker-machine config mh-keystore-vb<span class="k">)</span> run -d <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -p <span class="s2">&#34;8500:8500&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -h <span class="s2">&#34;consul&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    progrium/consul -server -bootstrap
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Create Primary Node</span>
+</span></span><span class="line"><span class="cl">docker-machine create <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	-d virtualbox <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	--swarm --swarm-master <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	--swarm-discovery<span class="o">=</span><span class="s2">&#34;consul://</span><span class="k">$(</span>docker-machine ip mh-keystore-vb<span class="k">)</span><span class="s2">:8500&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	--engine-opt<span class="o">=</span><span class="s2">&#34;cluster-store=consul://</span><span class="k">$(</span>docker-machine ip mh-keystore-vb<span class="k">)</span><span class="s2">:8500&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	--engine-opt<span class="o">=</span><span class="s2">&#34;cluster-advertise=eth1:2376&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	mhs-demo0-vb
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Create Secondary Node</span>
+</span></span><span class="line"><span class="cl">docker-machine create -d virtualbox <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    --swarm <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    --swarm-discovery<span class="o">=</span><span class="s2">&#34;consul://</span><span class="k">$(</span>docker-machine ip mh-keystore-vb<span class="k">)</span><span class="s2">:8500&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    --engine-opt<span class="o">=</span><span class="s2">&#34;cluster-store=consul://</span><span class="k">$(</span>docker-machine ip mh-keystore-vb<span class="k">)</span><span class="s2">:8500&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    --engine-opt<span class="o">=</span><span class="s2">&#34;cluster-advertise=eth1:2376&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  	mhs-demo1-vb
+</span></span></code></pre></div><p>To do in DigitalOcean: (we need a fairly new kernel for VXLAN, default value is Ubuntu 14.04 but its kernel is fairly old)</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">// replace it with your own token
+</span></span><span class="line"><span class="cl"><span class="nv">TOKEN</span><span class="o">=</span>aaa12a00f2f264727a4c5436c070d58477cd6d5f13a0379955901c4a962e9ee2 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Create Key Store Node</span>
+</span></span><span class="line"><span class="cl">docker-machine create --driver digitalocean <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	--digitalocean-access-token<span class="o">=</span><span class="nv">$TOKEN</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	--digitalocean-region<span class="o">=</span>ams3 mh-keystore-do		
+</span></span><span class="line"><span class="cl">docker <span class="k">$(</span>docker-machine config mh-keystore-do<span class="k">)</span> run -d <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -p <span class="s2">&#34;8500:8500&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    -h <span class="s2">&#34;consul&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    progrium/consul -server -bootstrap    
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Create Primary Node</span>
+</span></span><span class="line"><span class="cl">docker-machine create <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	--driver digitalocean <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	--digitalocean-access-token<span class="o">=</span><span class="nv">$TOKEN</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	--digitalocean-region<span class="o">=</span>ams3  <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	--digitalocean-image<span class="o">=</span>debian-8-x64 <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	--swarm --swarm-master <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	--swarm-discovery<span class="o">=</span><span class="s2">&#34;consul://</span><span class="k">$(</span>docker-machine ip mh-keystore-do<span class="k">)</span><span class="s2">:8500&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	--engine-opt<span class="o">=</span><span class="s2">&#34;cluster-store=consul://</span><span class="k">$(</span>docker-machine ip mh-keystore-do<span class="k">)</span><span class="s2">:8500&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	--engine-opt<span class="o">=</span><span class="s2">&#34;cluster-advertise=eth0:2376&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	mhs-demo0-do
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Create Secondary Node</span>
+</span></span><span class="line"><span class="cl">docker-machine create <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	--driver digitalocean <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	--digitalocean-access-token<span class="o">=</span><span class="nv">$TOKEN</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	--digitalocean-region<span class="o">=</span>ams3 <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	--digitalocean-image<span class="o">=</span>debian-8-x64 <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	--swarm <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    --swarm-discovery<span class="o">=</span><span class="s2">&#34;consul://</span><span class="k">$(</span>docker-machine ip mh-keystore-do<span class="k">)</span><span class="s2">:8500&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    --engine-opt<span class="o">=</span><span class="s2">&#34;cluster-store=consul://</span><span class="k">$(</span>docker-machine ip mh-keystore-do<span class="k">)</span><span class="s2">:8500&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>    --engine-opt<span class="o">=</span><span class="s2">&#34;cluster-advertise=eth0:2376&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>  	mhs-demo1-do
+</span></span></code></pre></div><p>With above configs, we create 3 machines, 1 key-value store (consul) for discovery and 1 Swarm master, and 1 additional Swarm node. To use them, you just point to the right swarm master. If you want to point to local Swarm master, all you have to do is the following:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ <span class="nb">eval</span> <span class="k">$(</span>docker-machine env --swarm mhs-demo0-vb<span class="k">)</span>
+</span></span><span class="line"><span class="cl">$ docker info
+</span></span><span class="line"><span class="cl">Containers: <span class="m">60</span>
+</span></span><span class="line"><span class="cl">Images: <span class="m">7</span>
+</span></span><span class="line"><span class="cl">Role: primary
+</span></span><span class="line"><span class="cl">Strategy: spread
+</span></span><span class="line"><span class="cl">Filters: health, port, dependency, affinity, constraint
+</span></span><span class="line"><span class="cl">Nodes: <span class="m">2</span>
+</span></span><span class="line"><span class="cl"> mhs-demo0-vb: 192.168.99.101:2376
+</span></span><span class="line"><span class="cl">  └ Containers: <span class="m">16</span>
+</span></span><span class="line"><span class="cl">  └ Reserved CPUs: <span class="m">0</span> / <span class="m">1</span>
+</span></span><span class="line"><span class="cl">  └ Reserved Memory: <span class="m">0</span> B / 1.021 GiB
+</span></span><span class="line"><span class="cl">  └ Labels: <span class="nv">executiondriver</span><span class="o">=</span>native-0.2, <span class="nv">kernelversion</span><span class="o">=</span>4.1.13-boot2docker, <span class="nv">operatingsystem</span><span class="o">=</span>Boot2Docker 1.9.1 <span class="o">(</span>TCL 6.4.1<span class="o">)</span><span class="p">;</span> master : cef800b - Fri Nov <span class="m">20</span> 19:33:59 UTC 2015, <span class="nv">provider</span><span class="o">=</span>virtualbox, <span class="nv">storagedriver</span><span class="o">=</span>aufs
+</span></span><span class="line"><span class="cl"> mhs-demo1-vb: 192.168.99.102:2376
+</span></span><span class="line"><span class="cl">  └ Containers: <span class="m">44</span>
+</span></span><span class="line"><span class="cl">  └ Reserved CPUs: <span class="m">0</span> / <span class="m">1</span>
+</span></span><span class="line"><span class="cl">  └ Reserved Memory: <span class="m">0</span> B / 1.021 GiB
+</span></span><span class="line"><span class="cl">  └ Labels: <span class="nv">executiondriver</span><span class="o">=</span>native-0.2, <span class="nv">kernelversion</span><span class="o">=</span>4.1.13-boot2docker, <span class="nv">operatingsystem</span><span class="o">=</span>Boot2Docker 1.9.1 <span class="o">(</span>TCL 6.4.1<span class="o">)</span><span class="p">;</span> master : cef800b - Fri Nov <span class="m">20</span> 19:33:59 UTC 2015, <span class="nv">provider</span><span class="o">=</span>virtualbox, <span class="nv">storagedriver</span><span class="o">=</span>aufs
+</span></span><span class="line"><span class="cl">CPUs: <span class="m">2</span>
+</span></span><span class="line"><span class="cl">Total Memory: 2.043 GiB
+</span></span><span class="line"><span class="cl">Name: 8d66756b3509
+</span></span></code></pre></div><p>And also for DigitalOcean the following is enough:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ <span class="nb">eval</span> <span class="k">$(</span>docker-machine env --swarm mhs-demo0-do<span class="k">)</span>
+</span></span><span class="line"><span class="cl">$ docker info
+</span></span><span class="line"><span class="cl">Containers: <span class="m">3</span>
+</span></span><span class="line"><span class="cl">Images: <span class="m">2</span>
+</span></span><span class="line"><span class="cl">Role: primary
+</span></span><span class="line"><span class="cl">Strategy: spread
+</span></span><span class="line"><span class="cl">Filters: health, port, dependency, affinity, constraint
+</span></span><span class="line"><span class="cl">Nodes: <span class="m">2</span>
+</span></span><span class="line"><span class="cl"> mhs-demo0-do: 188.166.113.176:2376
+</span></span><span class="line"><span class="cl">  └ Containers: <span class="m">2</span>
+</span></span><span class="line"><span class="cl">  └ Reserved CPUs: <span class="m">0</span> / <span class="m">1</span>
+</span></span><span class="line"><span class="cl">  └ Reserved Memory: <span class="m">0</span> B / 519.2 MiB
+</span></span><span class="line"><span class="cl">  └ Labels: <span class="nv">executiondriver</span><span class="o">=</span>native-0.2, <span class="nv">kernelversion</span><span class="o">=</span>3.16.0-4-amd64, <span class="nv">operatingsystem</span><span class="o">=</span>Debian GNU/Linux <span class="m">8</span> <span class="o">(</span>jessie<span class="o">)</span>, <span class="nv">provider</span><span class="o">=</span>digitalocean, <span class="nv">storagedriver</span><span class="o">=</span>aufs
+</span></span><span class="line"><span class="cl"> mhs-demo1-do: 178.62.230.66:2376
+</span></span><span class="line"><span class="cl">  └ Containers: <span class="m">1</span>
+</span></span><span class="line"><span class="cl">  └ Reserved CPUs: <span class="m">0</span> / <span class="m">1</span>
+</span></span><span class="line"><span class="cl">  └ Reserved Memory: <span class="m">0</span> B / 519.2 MiB
+</span></span><span class="line"><span class="cl">  └ Labels: <span class="nv">executiondriver</span><span class="o">=</span>native-0.2, <span class="nv">kernelversion</span><span class="o">=</span>3.16.0-4-amd64, <span class="nv">operatingsystem</span><span class="o">=</span>Debian GNU/Linux <span class="m">8</span> <span class="o">(</span>jessie<span class="o">)</span>, <span class="nv">provider</span><span class="o">=</span>digitalocean, <span class="nv">storagedriver</span><span class="o">=</span>aufs
+</span></span><span class="line"><span class="cl">CPUs: <span class="m">2</span>
+</span></span><span class="line"><span class="cl">Total Memory: 1.014 GiB
+</span></span><span class="line"><span class="cl">Name: 61b80edc00a0
+</span></span></code></pre></div><p><strong>Note:</strong> The reason I have chosen Debian Jessie is proper VXLAN functionality. We need a recent kernel and default value of DigitalOcean image uses 14.04 which has kernel 3.13 and updating it requires a reboot.</p>
 <h2 id="running-iperf-network-testing">Running iperf network testing</h2>
 <p>Steps from now on are not specific to DigitalOcean or Virtualbox (Besides the constraints, since I pin the containers to nodes!). You can use the above commands to switch your Swarm clusters. Now, lets try the network testing! To assess the limits, I have attached the host network directly to the containers, so we have an idea about the maximum performance we expect to achieve.</p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">docker run --name iperf_host -d -ti --net host <span class="se">\
-</span><span class="se"></span>	--env<span class="o">=</span><span class="s2">&#34;constraint:node==mhs-demo0-do&#34;</span> <span class="se">\
-</span><span class="se"></span>	mustafaakin/alpine-iperf iperf -s 
-
-<span class="c1"># Wait a little</span>
-sleep <span class="m">1</span>
-
-<span class="k">for</span> run in <span class="o">{</span>1..5<span class="o">}</span><span class="p">;</span> <span class="k">do</span> 
-	docker run --net host --env<span class="o">=</span><span class="s2">&#34;constraint:node==mhs-demo1-do&#34;</span> -ti <span class="se">\
-</span><span class="se"></span>	mustafaakin/alpine-iperf <span class="se">\
-</span><span class="se"></span>	iperf -c <span class="k">$(</span>docker-machine ip mhs-demo0-do<span class="k">)</span> -P <span class="m">10</span> <span class="p">|</span> grep SUM
-<span class="k">done</span>
-</code></pre></div><p>On DigitalOcean it gives 932 MBits/sec on average of 5 runs, and in VirtualBox it is approximately 1.72 GBit/sec.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker run --name iperf_host -d -ti --net host <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	--env<span class="o">=</span><span class="s2">&#34;constraint:node==mhs-demo0-do&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	mustafaakin/alpine-iperf iperf -s 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Wait a little</span>
+</span></span><span class="line"><span class="cl">sleep <span class="m">1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">for</span> run in <span class="o">{</span>1..5<span class="o">}</span><span class="p">;</span> <span class="k">do</span> 
+</span></span><span class="line"><span class="cl">	docker run --net host --env<span class="o">=</span><span class="s2">&#34;constraint:node==mhs-demo1-do&#34;</span> -ti <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	mustafaakin/alpine-iperf <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	iperf -c <span class="k">$(</span>docker-machine ip mhs-demo0-do<span class="k">)</span> -P <span class="m">10</span> <span class="p">|</span> grep SUM
+</span></span><span class="line"><span class="cl"><span class="k">done</span>
+</span></span></code></pre></div><p>On DigitalOcean it gives 932 MBits/sec on average of 5 runs, and in VirtualBox it is approximately 1.72 GBit/sec.</p>
 <p>To test Overlay networking, we need to create it through Swarm master, so it can setup proper bridges/interfaces on each node. Then the process is very similar to previous one, we just subsitute the host network for our network as a parameter, and we give the private IP address of iperf server container to iperf client container. A better solution would be a DNS embedded to Swarm, which is not out yet but some people are working on <a href="https://github.com/ahmetalpbalkan/wagl">their solutions</a></p>
-<div class="highlight"><pre class="chroma"><code class="language-bash" data-lang="bash">docker network create -d overlay mynet
-docker run --name iperf_overlay -d -ti --net mynet <span class="se">\
-</span><span class="se"></span>	--env<span class="o">=</span><span class="s2">&#34;constraint:node==mhs-demo0-do&#34;</span> <span class="se">\
-</span><span class="se"></span>	mustafaakin/alpine-iperf iperf -s 
-
-<span class="c1"># Wait a little</span>
-sleep <span class="m">1</span>
-
-<span class="nv">IP</span><span class="o">=</span><span class="k">$(</span>docker inspect -f <span class="s2">&#34;{ { .NetworkSettings.Networks.mynet.IPAddress }}&#34;</span> iperf_overlay<span class="k">)</span>
-<span class="k">for</span> run in <span class="o">{</span>1..5<span class="o">}</span><span class="p">;</span> <span class="k">do</span> 
-	docker run --net mynet --env<span class="o">=</span><span class="s2">&#34;constraint:node==mhs-demo1-do&#34;</span> -ti <span class="se">\
-</span><span class="se"></span>	mustafaakin/alpine-iperf <span class="se">\
-</span><span class="se"></span>	iperf -c <span class="nv">$IP</span> -P <span class="m">10</span> <span class="p">|</span> grep SUM
-<span class="k">done</span>
-</code></pre></div><p>It should be working! The speed of overlay network on VirtualBox slows down significantly, and it is approximately 896 Mbit/sec. On the other hand, speed on DigitalOcean is approximately 882 MBits/sec for 5 runs. As I have said before, the numbers in VirtualBox might be misleading of too many overheads and inefficient virtualization.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">docker network create -d overlay mynet
+</span></span><span class="line"><span class="cl">docker run --name iperf_overlay -d -ti --net mynet <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	--env<span class="o">=</span><span class="s2">&#34;constraint:node==mhs-demo0-do&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	mustafaakin/alpine-iperf iperf -s 
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Wait a little</span>
+</span></span><span class="line"><span class="cl">sleep <span class="m">1</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nv">IP</span><span class="o">=</span><span class="k">$(</span>docker inspect -f <span class="s2">&#34;{ { .NetworkSettings.Networks.mynet.IPAddress }}&#34;</span> iperf_overlay<span class="k">)</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> run in <span class="o">{</span>1..5<span class="o">}</span><span class="p">;</span> <span class="k">do</span> 
+</span></span><span class="line"><span class="cl">	docker run --net mynet --env<span class="o">=</span><span class="s2">&#34;constraint:node==mhs-demo1-do&#34;</span> -ti <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	mustafaakin/alpine-iperf <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>	iperf -c <span class="nv">$IP</span> -P <span class="m">10</span> <span class="p">|</span> grep SUM
+</span></span><span class="line"><span class="cl"><span class="k">done</span>
+</span></span></code></pre></div><p>It should be working! The speed of overlay network on VirtualBox slows down significantly, and it is approximately 896 Mbit/sec. On the other hand, speed on DigitalOcean is approximately 882 MBits/sec for 5 runs. As I have said before, the numbers in VirtualBox might be misleading of too many overheads and inefficient virtualization.</p>
 <p>So, we look at performance at DigitalOcean and it is approximately %5 slower compared to native networking on DigitalOcean! Pretty impressive. Also note that this is merely a full bandwith benchmark, in real applications the difference would probably will not be noticable. However it is another blog post topic :)</p>
 
 </div>
 
 <h2>Comments</h2>
 <div id="disqus_thread"></div>
-<script type="application/javascript">
-    var disqus_config = function () {
+<script>
+    window.disqus_config = function () {
     
     
     
@@ -221,7 +221,7 @@ sleep <span class="m">1</span>
 
     
       
-<script type="application/javascript">
+<script>
 var doNotTrack = false;
 if (!doNotTrack) {
 	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;

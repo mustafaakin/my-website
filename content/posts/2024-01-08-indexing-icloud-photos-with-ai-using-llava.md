@@ -1,4 +1,3 @@
---
 ---
 title: Indexing iCloud Photos with AI Using LLaVA and pgvector
 date: 2024-01-08

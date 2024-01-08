@@ -3,14 +3,14 @@
 <head>
   <link href="https://gmpg.org/xfn/11" rel="profile">
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <meta name="generator" content="Hugo 0.69.2" />
+  <meta name="generator" content="Hugo 0.121.2">
 
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:description" content="Originally appeared on Opsgenie Engineering Blog
- In Kubernetes, there are many objects in the core APIs. One of the most overlooked object types is Events, which are reports on the objects in the API Server. Pod started, scheduled, ReplicaSet scaled are informational events, whereas unhealthy nodes, Pod sandbox errors are considered Warning events, which you may want to get alerts when they occur.
+In Kubernetes, there are many objects in the core APIs. One of the most overlooked object types is Events, which are reports on the objects in the API Server. Pod started, scheduled, ReplicaSet scaled are informational events, whereas unhealthy nodes, Pod sandbox errors are considered Warning events, which you may want to get alerts when they occur.
 Events have a high volume of activity compared to other objects in the Kubernetes." />
   <meta name="twitter:title" content="How to Export Kubernetes Events for Observability and Alerting " />
   <meta name="twitter:site" content="@mustafaakin" />
@@ -39,7 +39,7 @@ Events have a high volume of activity compared to other objects in the Kubernete
     <div class="sidebar-about">
       <a href=""><h1>Mustafa Akın</h1></a>
       <p class="lead">
-       SRE Architect @Atlassian Opsgenie, PhD Student @Bilkent University CS 
+       Co-founder at @Resmo, previously Principal SRE at @Atlassian, Opsgenie 
       </p>
     </div>
 
@@ -79,50 +79,50 @@ A comparison of event reason distributions for a stable cluster and development 
 Timeseries view for over a week for finding out Pod Creation counts and Schedule Fails in the development cluster</p>
 <p>After you have an idea of what types of events are thrown and decide which are important, you can try creating alerts or Slack notifications. For instance, a Warning event on kube-system namespace can create an alert on Opsgenie so that you are aware of the problems in the critical components. Our tool also fetches the labels on the involved object, so if your objects have owner information in their labels, you can directly notify them via Slack. The configuration of our tool allows creating a routing tree for filtering the events to be received in multiple outputs. With a single configuration and running instance, you can direct the events for both dumping and alerting purposes. The configuration language is slightly inspired by the Prometheus Alert manager.</p>
 <p>The first part of the configuration is about routing the events. An example configuration is as follows:</p>
-<div class="highlight"><pre class="chroma"><code class="language-yaml" data-lang="yaml"><span class="k">route</span><span class="p">:</span><span class="w">
-</span><span class="w">  </span><span class="c"># Main route</span><span class="w">
-</span><span class="w">  </span><span class="k">routes</span><span class="p">:</span><span class="w"> 
-</span><span class="w">    </span><span class="c"># This route allows dumping all events because it has no fields to match and no drop rules.</span><span class="w">
-</span><span class="w">    </span>- <span class="k">match</span><span class="p">:</span><span class="w">
-</span><span class="w">      </span>- <span class="k">receiver</span><span class="p">:</span><span class="w"> </span>dump<span class="w">
-</span><span class="w">    </span><span class="c"># This starts another route, drops all the events in *test* namespaces and Normal events </span><span class="w">
-</span><span class="w">    </span><span class="c"># for capturing critical events </span><span class="w">
-</span><span class="w">    </span>- <span class="k">drop</span><span class="p">:</span><span class="w">
-</span><span class="w">      </span>- <span class="k">namespace</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;*test*&#34;</span><span class="w">
-</span><span class="w">      </span>- <span class="k">type</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;Normal&#34;</span><span class="w">
-</span><span class="w">      </span><span class="k">match</span><span class="p">:</span><span class="w"> 
-</span><span class="w">      </span>- <span class="k">receiver</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;critical-events-queue&#34;</span><span class="w">
-</span><span class="w">    </span><span class="c"># This a final route for user messages</span><span class="w">
-</span><span class="w">    </span>- <span class="k">match</span><span class="p">:</span><span class="w">
-</span><span class="w">        </span><span class="k">kind</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;Pod|Deployment|ReplicaSet&#34;</span><span class="w">
-</span><span class="w">        </span><span class="k">labels</span><span class="p">:</span><span class="w">
-</span><span class="w">          </span><span class="k">version</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;dev&#34;</span><span class="w">    
-</span><span class="w">        </span><span class="k">receiver</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;slack&#34;</span><span class="w">    
-</span><span class="w"></span><span class="k">receivers</span><span class="p">:</span><span class="w">
-</span></code></pre></div><p>After creating your routing tree, you should also define the receivers. Each receiver has a name and can be configured with a different kind of integration. Currently, the tool supports Elasticsearch, Opsgenie, Webhooks, Slack and AWS SNS, SQS, Kinesis, with more to come in the following days. Output configurations also allow payload customization with Go templating. This allows integrating with external systems that require data to be in a certain format and saves the user from writing additional code.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">route</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># Main route</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">routes</span><span class="p">:</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c"># This route allows dumping all events because it has no fields to match and no drop rules.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">match</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">receiver</span><span class="p">:</span><span class="w"> </span><span class="l">dump</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c"># This starts another route, drops all the events in *test* namespaces and Normal events </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c"># for capturing critical events </span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">drop</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;*test*&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;Normal&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">match</span><span class="p">:</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="nt">receiver</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;critical-events-queue&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c"># This a final route for user messages</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span>- <span class="nt">match</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;Pod|Deployment|ReplicaSet&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">labels</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;dev&#34;</span><span class="w">    
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">receiver</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;slack&#34;</span><span class="w">    
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">receivers</span><span class="p">:</span><span class="w">
+</span></span></span></code></pre></div><p>After creating your routing tree, you should also define the receivers. Each receiver has a name and can be configured with a different kind of integration. Currently, the tool supports Elasticsearch, Opsgenie, Webhooks, Slack and AWS SNS, SQS, Kinesis, with more to come in the following days. Output configurations also allow payload customization with Go templating. This allows integrating with external systems that require data to be in a certain format and saves the user from writing additional code.</p>
 <p>An example output is configured as follows:</p>
-<div class="highlight"><pre class="chroma"><code class="language-yaml" data-lang="yaml"><span class="k">receivers</span><span class="p">:</span><span class="w">
-</span><span class="w">  </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;alerts&#34;</span><span class="w">
-</span><span class="w">    </span><span class="k">opsgenie</span><span class="p">:</span><span class="w">
-</span><span class="w">      </span><span class="k">apiKey</span><span class="p">:</span><span class="w"> </span>xxx<span class="w">
-</span><span class="w">      </span><span class="k">priority</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;P3&#34;</span><span class="w">
-</span><span class="w">      </span><span class="k">message</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;Event {{ .Reason }} for {{ .InvolvedObject.Namespace }}/{{ .InvolvedObject.Name }} on K8s cluster&#34;</span><span class="w">
-</span><span class="w">      </span><span class="k">alias</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;{{ .UID }}&#34;</span><span class="w">
-</span><span class="w">      </span><span class="k">description</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;&lt;pre&gt;{{ toPrettyJson . }}&lt;/pre&gt;&#34;</span><span class="w">
-</span><span class="w">      </span><span class="k">tags</span><span class="p">:</span><span class="w">
-</span><span class="w">        </span>- <span class="s2">&#34;event&#34;</span><span class="w">
-</span><span class="w">        </span>- <span class="s2">&#34;{{ .Reason }}&#34;</span><span class="w">
-</span><span class="w">        </span>- <span class="s2">&#34;{{ .InvolvedObject.Kind }}&#34;</span><span class="w">
-</span><span class="w">        </span>- <span class="s2">&#34;{{ .InvolvedObject.Name }}&#34;</span><span class="w">
-</span></code></pre></div><p>If you would like to test the tool, you should head out to the <a href="https://github.com/opsgenie/kubernetes-event-exporter">GitHub repository</a> and see the section on deployment. The tool is configured via ConfigMap and runs as a single pod Deployment in Kubernetes. We would also love contributions from you and please have a look at the <a href="https://github.com/opsgenie/kubernetes-event-exporter/issues">open issues</a> for a starting point. We hope this tool can give you more observability on your Kubernetes clusters and you can create useful alerts to reduce the incidents and response time!</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">receivers</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;alerts&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">opsgenie</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">apiKey</span><span class="p">:</span><span class="w"> </span><span class="l">xxx</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">priority</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;P3&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">message</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;Event {{ .Reason }} for {{ .InvolvedObject.Namespace }}/{{ .InvolvedObject.Name }} on K8s cluster&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">alias</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;{{ .UID }}&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;&lt;pre&gt;{{ toPrettyJson . }}&lt;/pre&gt;&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">tags</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="s2">&#34;event&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="s2">&#34;{{ .Reason }}&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="s2">&#34;{{ .InvolvedObject.Kind }}&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span>- <span class="s2">&#34;{{ .InvolvedObject.Name }}&#34;</span><span class="w">
+</span></span></span></code></pre></div><p>If you would like to test the tool, you should head out to the <a href="https://github.com/opsgenie/kubernetes-event-exporter">GitHub repository</a> and see the section on deployment. The tool is configured via ConfigMap and runs as a single pod Deployment in Kubernetes. We would also love contributions from you and please have a look at the <a href="https://github.com/opsgenie/kubernetes-event-exporter/issues">open issues</a> for a starting point. We hope this tool can give you more observability on your Kubernetes clusters and you can create useful alerts to reduce the incidents and response time!</p>
 <p>We have more projects to open source soon, the biggest one is our alternative Kubernetes Dashboard!</p>
 
 </div>
 
 <h2>Comments</h2>
 <div id="disqus_thread"></div>
-<script type="application/javascript">
-    var disqus_config = function () {
+<script>
+    window.disqus_config = function () {
     
     
     
@@ -144,7 +144,7 @@ Timeseries view for over a week for finding out Pod Creation counts and Schedule
 
     
       
-<script type="application/javascript">
+<script>
 var doNotTrack = false;
 if (!doNotTrack) {
 	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;

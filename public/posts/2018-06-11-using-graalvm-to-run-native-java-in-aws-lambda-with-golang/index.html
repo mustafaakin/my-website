@@ -3,14 +3,14 @@
 <head>
   <link href="https://gmpg.org/xfn/11" rel="profile">
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <meta name="generator" content="Hugo 0.69.2" />
+  <meta name="generator" content="Hugo 0.121.2">
 
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:description" content="Originally appeared on Opsgenie Engineering Blog
- If you are deploying serverless applications in AWS Lambda and using Java, you are well aware of cold start problems. Cold start happens because of the way the Java Virtual Machine works, it kicks in JIT (Just-in-time), and it needs to “warm-up” like a car from the 80s. AWS Lambda caches containers for you, so when idle, it is paused and brought back online immediately as soon as a request arrives." />
+If you are deploying serverless applications in AWS Lambda and using Java, you are well aware of cold start problems. Cold start happens because of the way the Java Virtual Machine works, it kicks in JIT (Just-in-time), and it needs to “warm-up” like a car from the 80s. AWS Lambda caches containers for you, so when idle, it is paused and brought back online immediately as soon as a request arrives." />
   <meta name="twitter:title" content="Using GraalVM to run Native Java in AWS Lambda with Golang " />
   <meta name="twitter:site" content="@mustafaakin" />
   <meta name="twitter:creator" content="@mustafaakin" />
@@ -38,7 +38,7 @@
     <div class="sidebar-about">
       <a href=""><h1>Mustafa Akın</h1></a>
       <p class="lead">
-       SRE Architect @Atlassian Opsgenie, PhD Student @Bilkent University CS 
+       Co-founder at @Resmo, previously Principal SRE at @Atlassian, Opsgenie 
       </p>
     </div>
 
@@ -72,82 +72,82 @@
 </ul>
 <p>As you might notice, this pattern is similar to sockets &amp; pipes. At first, we tried using socket communications, although it is less ideal with I/O overhead, it seemed more natural to understand for a blog post. However, AWS shut us down, as you can’t bind to any socket for creating servers. Then, we tried creating Unix pipes, but Java can’t create them (but use them as they are regular files), and the Go function when calls syscall.Mkfifo returns file exists error, although it does not. So, we came up with the below solution, where everything happens in the memory of the single binary and works very fast.</p>
 <p>The Go code for handling communication with AWS and Java is as follows:</p>
-<div class="highlight"><pre class="chroma"><code class="language-golang" data-lang="golang"><span class="kd">func</span> <span class="nf">communicateJava</span><span class="p">(</span><span class="nx">input</span> <span class="kd">interface</span><span class="p">{})</span> <span class="p">(</span><span class="kd">interface</span><span class="p">{},</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
-  <span class="nx">inBytes</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">json</span><span class="p">.</span><span class="nf">Marshal</span><span class="p">(</span><span class="nx">input</span><span class="p">)</span>
-  <span class="nx">inputStr</span> <span class="o">:=</span> <span class="nb">string</span><span class="p">(</span><span class="nx">inBytes</span><span class="p">)</span>
-  <span class="nx">goRequest</span> <span class="o">&lt;-</span> <span class="nx">inputStr</span>
-  <span class="nx">respStr</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">javaResponse</span>
-  <span class="kd">var</span> <span class="nx">resp</span> <span class="kd">interface</span><span class="p">{}</span>
-  <span class="nx">err</span> <span class="p">=</span> <span class="nx">json</span><span class="p">.</span><span class="nf">Unmarshal</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="nx">respStr</span><span class="p">),</span> <span class="o">&amp;</span><span class="nx">resp</span><span class="p">)</span>
-<span class="p">}</span>
-
-<span class="c1">//export Java_Test_start
-</span><span class="c1"></span><span class="kd">func</span> <span class="nf">Java_Test_start</span><span class="p">(</span><span class="nx">env</span> <span class="o">*</span><span class="nx">C</span><span class="p">.</span><span class="nx">JNIEnv</span><span class="p">,</span> <span class="nx">clazz</span> <span class="nx">C</span><span class="p">.</span><span class="nx">jclass</span><span class="p">)</span> <span class="p">{</span>
-  <span class="nx">log</span><span class="p">.</span><span class="nf">SetPrefix</span><span class="p">(</span><span class="s">&#34;GO - &#34;</span><span class="p">)</span>
-
-  <span class="k">go</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
-     <span class="nx">lambda</span><span class="p">.</span><span class="nf">Start</span><span class="p">(</span><span class="nx">communicateJava</span><span class="p">)</span>
-  <span class="p">}()</span>
-<span class="p">}</span>
-
-<span class="c1">//export Java_Test_writeResponse
-</span><span class="c1"></span><span class="kd">func</span> <span class="nf">Java_Test_writeResponse</span><span class="p">(</span><span class="nx">env</span> <span class="o">*</span><span class="nx">C</span><span class="p">.</span><span class="nx">JNIEnv</span><span class="p">,</span> <span class="nx">clazz</span> <span class="nx">C</span><span class="p">.</span><span class="nx">jclass</span><span class="p">,</span> <span class="nx">input</span> <span class="nx">C</span><span class="p">.</span><span class="nx">jstring</span><span class="p">)</span> <span class="p">{</span>
-  <span class="nx">a</span> <span class="o">:=</span> <span class="nx">C</span><span class="p">.</span><span class="nf">convert_to_cstring</span><span class="p">(</span><span class="nx">env</span><span class="p">,</span> <span class="nx">input</span><span class="p">)</span>
-  <span class="nx">b</span> <span class="o">:=</span> <span class="nx">C</span><span class="p">.</span><span class="nf">GoString</span><span class="p">(</span><span class="nx">a</span><span class="p">)</span>
-  <span class="nx">javaResponse</span> <span class="o">&lt;-</span> <span class="nx">b</span>
-<span class="p">}</span>
-
-<span class="c1">//export Java_Test_readRequest
-</span><span class="c1"></span><span class="kd">func</span> <span class="nf">Java_Test_readRequest</span><span class="p">(</span><span class="nx">env</span> <span class="o">*</span><span class="nx">C</span><span class="p">.</span><span class="nx">JNIEnv</span><span class="p">,</span> <span class="nx">clazz</span> <span class="nx">C</span><span class="p">.</span><span class="nx">jclass</span><span class="p">)</span> <span class="nx">C</span><span class="p">.</span><span class="nx">jstring</span> <span class="p">{</span>
-  <span class="nx">input</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">goRequest</span>
-  <span class="nx">cstr</span> <span class="o">:=</span> <span class="nx">C</span><span class="p">.</span><span class="nf">CString</span><span class="p">(</span><span class="nx">input</span><span class="p">)</span>
-  <span class="nx">cjstring</span> <span class="o">:=</span> <span class="nx">C</span><span class="p">.</span><span class="nf">convert_to_jstring</span><span class="p">(</span><span class="nx">env</span><span class="p">,</span> <span class="nx">cstr</span><span class="p">)</span>
-  <span class="k">return</span> <span class="nx">cjstring</span>
-<span class="p">}</span>
-</code></pre></div><p>The Java code which is started at the creation of Lambda container loads and calls the Go counterparts using JNI is as follows:</p>
-<div class="highlight"><pre class="chroma"><code class="language-java" data-lang="java"><span class="n">System</span><span class="o">.</span><span class="na">loadLibrary</span><span class="o">(</span><span class="s">&#34;Hello&#34;</span><span class="o">);</span>
-<span class="n">start</span><span class="o">();</span>
-<span class="k">while</span> <span class="o">(</span><span class="kc">true</span><span class="o">)</span> <span class="o">{</span>
-  <span class="n">String</span> <span class="n">request</span> <span class="o">=</span> <span class="n">readRequest</span><span class="o">();</span>
-  <span class="n">KMeansResult</span> <span class="n">response</span> <span class="o">=</span> <span class="n">kMeans</span><span class="o">.</span><span class="na">calculate</span><span class="o">(</span><span class="n">request</span><span class="o">);</span>
-  <span class="n">String</span> <span class="n">response</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="na">toString</span><span class="o">();</span>
-  <span class="n">writeResponse</span><span class="o">(</span><span class="n">response</span><span class="o">);</span>
-  <span class="o">}</span>
-<span class="o">}</span>
-</code></pre></div><p>Java counter part of communicating with Golang shared library and doing the actual calculation</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-golang" data-lang="golang"><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">communicateJava</span><span class="p">(</span><span class="nx">input</span> <span class="kd">interface</span><span class="p">{})</span> <span class="p">(</span><span class="kd">interface</span><span class="p">{},</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">inBytes</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">json</span><span class="p">.</span><span class="nf">Marshal</span><span class="p">(</span><span class="nx">input</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">inputStr</span> <span class="o">:=</span> <span class="nb">string</span><span class="p">(</span><span class="nx">inBytes</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">goRequest</span> <span class="o">&lt;-</span> <span class="nx">inputStr</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">respStr</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">javaResponse</span>
+</span></span><span class="line"><span class="cl">  <span class="kd">var</span> <span class="nx">resp</span> <span class="kd">interface</span><span class="p">{}</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">err</span> <span class="p">=</span> <span class="nx">json</span><span class="p">.</span><span class="nf">Unmarshal</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="nx">respStr</span><span class="p">),</span> <span class="o">&amp;</span><span class="nx">resp</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">//export Java_Test_start
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="nf">Java_Test_start</span><span class="p">(</span><span class="nx">env</span> <span class="o">*</span><span class="nx">C</span><span class="p">.</span><span class="nx">JNIEnv</span><span class="p">,</span> <span class="nx">clazz</span> <span class="nx">C</span><span class="p">.</span><span class="nx">jclass</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">log</span><span class="p">.</span><span class="nf">SetPrefix</span><span class="p">(</span><span class="s">&#34;GO - &#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">  <span class="k">go</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">     <span class="nx">lambda</span><span class="p">.</span><span class="nf">Start</span><span class="p">(</span><span class="nx">communicateJava</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}()</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">//export Java_Test_writeResponse
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="nf">Java_Test_writeResponse</span><span class="p">(</span><span class="nx">env</span> <span class="o">*</span><span class="nx">C</span><span class="p">.</span><span class="nx">JNIEnv</span><span class="p">,</span> <span class="nx">clazz</span> <span class="nx">C</span><span class="p">.</span><span class="nx">jclass</span><span class="p">,</span> <span class="nx">input</span> <span class="nx">C</span><span class="p">.</span><span class="nx">jstring</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">a</span> <span class="o">:=</span> <span class="nx">C</span><span class="p">.</span><span class="nf">convert_to_cstring</span><span class="p">(</span><span class="nx">env</span><span class="p">,</span> <span class="nx">input</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">b</span> <span class="o">:=</span> <span class="nx">C</span><span class="p">.</span><span class="nf">GoString</span><span class="p">(</span><span class="nx">a</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">javaResponse</span> <span class="o">&lt;-</span> <span class="nx">b</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">//export Java_Test_readRequest
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="nf">Java_Test_readRequest</span><span class="p">(</span><span class="nx">env</span> <span class="o">*</span><span class="nx">C</span><span class="p">.</span><span class="nx">JNIEnv</span><span class="p">,</span> <span class="nx">clazz</span> <span class="nx">C</span><span class="p">.</span><span class="nx">jclass</span><span class="p">)</span> <span class="nx">C</span><span class="p">.</span><span class="nx">jstring</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">input</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">goRequest</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">cstr</span> <span class="o">:=</span> <span class="nx">C</span><span class="p">.</span><span class="nf">CString</span><span class="p">(</span><span class="nx">input</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">cjstring</span> <span class="o">:=</span> <span class="nx">C</span><span class="p">.</span><span class="nf">convert_to_jstring</span><span class="p">(</span><span class="nx">env</span><span class="p">,</span> <span class="nx">cstr</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">  <span class="k">return</span> <span class="nx">cjstring</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>The Java code which is started at the creation of Lambda container loads and calls the Go counterparts using JNI is as follows:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="n">System</span><span class="p">.</span><span class="na">loadLibrary</span><span class="p">(</span><span class="s">&#34;Hello&#34;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">start</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="kc">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="n">String</span><span class="w"> </span><span class="n">request</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">readRequest</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="n">KMeansResult</span><span class="w"> </span><span class="n">response</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kMeans</span><span class="p">.</span><span class="na">calculate</span><span class="p">(</span><span class="n">request</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="n">String</span><span class="w"> </span><span class="n">response</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">response</span><span class="p">.</span><span class="na">toString</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="n">writeResponse</span><span class="p">(</span><span class="n">response</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>Java counter part of communicating with Golang shared library and doing the actual calculation</p>
 <p>To link them both, under Linux, we compile the Go as a shared library. Then, in any machine, we compile Java with regular Java compiler. In our case, we used Maven, to include external dependencies such as Apache Commons Math and org.json to make the task harder, but more meaningful as using plain Java is not interesting at all. We package it as a fat-jar and supply it to native-image tool included with the GraalVM distribution. Example build output is as follows:</p>
-<div class="highlight"><pre class="chroma"><code class="language-sh" data-lang="sh">root@03da97ad05ed:/code# go build <span class="se">\
-</span><span class="se"></span> -buildmode<span class="o">=</span>c-shared <span class="se">\
-</span><span class="se"></span> -o libHello.so <span class="se">\
-</span><span class="se"></span> src/main/go/lambda.go
-
-root@03da97ad05ed:/code# <span class="nv">$GRAALVM_HOME</span>/bin/native-image <span class="se">\
-</span><span class="se"></span> MyEntrypointJava <span class="se">\
-</span><span class="se"></span> -cp <span class="s2">&#34;target/graalvm-java-go-awslambda-1.0-SNAPSHOT.jar&#34;</span> <span class="se">\
-</span><span class="se"></span> -H:+JNI -H:+ReflectionEnabled <span class="se">\
-</span><span class="se"></span> -H:+ReportUnsupportedElementsAtRuntime <span class="se">\
-</span><span class="se"></span> -Djava.library.path<span class="o">=</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> - no-server
- 
-classlist: 4,593.14 ms
-<span class="o">(</span>cap<span class="o">)</span>: 1,545.73 ms
-setup: 3,208.61 ms
-<span class="o">(</span>typeflow<span class="o">)</span>: 7,488.44 ms
-<span class="o">(</span>objects<span class="o">)</span>: 3,405.12 ms
-<span class="o">(</span>features<span class="o">)</span>: 76.77 ms
-analysis: 11,184.50 ms
-universe: 471.31 ms
-<span class="o">(</span>parse<span class="o">)</span>: 1,677.39 ms
-<span class="o">(</span>inline<span class="o">)</span>: 1,150.32 ms
-<span class="o">(</span>compile<span class="o">)</span>: 9,294.53 ms
-compile: 12,667.04 ms
-image: 1,297.93 ms
-write: 354.55 ms
-<span class="o">[</span>total<span class="o">]</span>: 33,868.05 ms
-
-root@03da97ad05ed:/code# zip lambda.zip libHello.so myentrypointjava
-adding: libHello.so <span class="o">(</span>deflated 68%<span class="o">)</span>
-adding: myentrypointjava <span class="o">(</span>deflated 67%<span class="o">)</span>
-</code></pre></div><p>We have used a custom Docker image with OpenJDK 8, Go 1.10.2 and GraalVM 1.0 RC1. You also need zlib development files and GCC. As you can see, the lambda.go file is compiled as c-shared with Go compiler. After that, the bundled Fat JAR file is passed to native-image, which takes a considerable amount of time (33.8 seconds) to determine the used classes, analyze the flow and optimize &amp; inline as a regular compiler does. In the end, it generates a single executable, only depending on system libraries such as libc, libz, libpthread and libcrypt. You still need to supply the shared library produced by Go, as it is loaded dynamically (with System.loadLibrary() call), not linked statically.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sh" data-lang="sh"><span class="line"><span class="cl">root@03da97ad05ed:/code# go build <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span> -buildmode<span class="o">=</span>c-shared <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span> -o libHello.so <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span> src/main/go/lambda.go
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@03da97ad05ed:/code# <span class="nv">$GRAALVM_HOME</span>/bin/native-image <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span> MyEntrypointJava <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span> -cp <span class="s2">&#34;target/graalvm-java-go-awslambda-1.0-SNAPSHOT.jar&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span> -H:+JNI -H:+ReflectionEnabled <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span> -H:+ReportUnsupportedElementsAtRuntime <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span> -Djava.library.path<span class="o">=</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span> - no-server
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl">classlist: 4,593.14 ms
+</span></span><span class="line"><span class="cl"><span class="o">(</span>cap<span class="o">)</span>: 1,545.73 ms
+</span></span><span class="line"><span class="cl">setup: 3,208.61 ms
+</span></span><span class="line"><span class="cl"><span class="o">(</span>typeflow<span class="o">)</span>: 7,488.44 ms
+</span></span><span class="line"><span class="cl"><span class="o">(</span>objects<span class="o">)</span>: 3,405.12 ms
+</span></span><span class="line"><span class="cl"><span class="o">(</span>features<span class="o">)</span>: 76.77 ms
+</span></span><span class="line"><span class="cl">analysis: 11,184.50 ms
+</span></span><span class="line"><span class="cl">universe: 471.31 ms
+</span></span><span class="line"><span class="cl"><span class="o">(</span>parse<span class="o">)</span>: 1,677.39 ms
+</span></span><span class="line"><span class="cl"><span class="o">(</span>inline<span class="o">)</span>: 1,150.32 ms
+</span></span><span class="line"><span class="cl"><span class="o">(</span>compile<span class="o">)</span>: 9,294.53 ms
+</span></span><span class="line"><span class="cl">compile: 12,667.04 ms
+</span></span><span class="line"><span class="cl">image: 1,297.93 ms
+</span></span><span class="line"><span class="cl">write: 354.55 ms
+</span></span><span class="line"><span class="cl"><span class="o">[</span>total<span class="o">]</span>: 33,868.05 ms
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">root@03da97ad05ed:/code# zip lambda.zip libHello.so myentrypointjava
+</span></span><span class="line"><span class="cl">adding: libHello.so <span class="o">(</span>deflated 68%<span class="o">)</span>
+</span></span><span class="line"><span class="cl">adding: myentrypointjava <span class="o">(</span>deflated 67%<span class="o">)</span>
+</span></span></code></pre></div><p>We have used a custom Docker image with OpenJDK 8, Go 1.10.2 and GraalVM 1.0 RC1. You also need zlib development files and GCC. As you can see, the lambda.go file is compiled as c-shared with Go compiler. After that, the bundled Fat JAR file is passed to native-image, which takes a considerable amount of time (33.8 seconds) to determine the used classes, analyze the flow and optimize &amp; inline as a regular compiler does. In the end, it generates a single executable, only depending on system libraries such as libc, libz, libpthread and libcrypt. You still need to supply the shared library produced by Go, as it is loaded dynamically (with System.loadLibrary() call), not linked statically.</p>
 <p>After uploading the package to AWS Lambda with even a relatively small memory configuration, it generally works under 10ms and sometimes even sub-milliseconds. You can see there are no more cold starts and the function is available immediately upon container initialization.</p>
 <p>An example invocation log from Cloudwatch is as follows:</p>
 <p><img src="../../img/0__O7NTtO8lqlYkcZs9.jpg" alt="Yes, A sub-millisecond cold start (first invocation) with only consuming 38 MB with external dependencies, even in the slowest Lambda settings."></p>
@@ -165,8 +165,8 @@ adding: myentrypointjava <span class="o">(</span>deflated 67%<span class="o">)</
 
 <h2>Comments</h2>
 <div id="disqus_thread"></div>
-<script type="application/javascript">
-    var disqus_config = function () {
+<script>
+    window.disqus_config = function () {
     
     
     
@@ -188,7 +188,7 @@ adding: myentrypointjava <span class="o">(</span>deflated 67%<span class="o">)</
 
     
       
-<script type="application/javascript">
+<script>
 var doNotTrack = false;
 if (!doNotTrack) {
 	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;

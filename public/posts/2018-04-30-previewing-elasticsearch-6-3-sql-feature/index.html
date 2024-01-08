@@ -3,7 +3,7 @@
 <head>
   <link href="https://gmpg.org/xfn/11" rel="profile">
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <meta name="generator" content="Hugo 0.69.2" />
+  <meta name="generator" content="Hugo 0.121.2">
 
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -38,7 +38,7 @@ SQL support was announced in ElasticON and there is a comprehensive presentation
     <div class="sidebar-about">
       <a href=""><h1>Mustafa Akın</h1></a>
       <p class="lead">
-       SRE Architect @Atlassian Opsgenie, PhD Student @Bilkent University CS 
+       Co-founder at @Resmo, previously Principal SRE at @Atlassian, Opsgenie 
       </p>
     </div>
 
@@ -65,138 +65,138 @@ SQL support was announced in ElasticON and there is a comprehensive presentation
 </ul>
 <p>Note that although the releases are named 7.0.0-alpha1-SNAPSHOT, they are actually not tagged as 6.x, not really version 7.0. I have also included Metricbeat to generate sample data from my computer. You can also generate similar links for other beat variants such as Filebeat.</p>
 <p>After setting up the components, I just opened the Kibana because I like its DevTools which allows wiriting REST requests easier and can autocomplete very well. I just tried the following:</p>
-<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="nx">GET</span> <span class="nx">_xpack</span><span class="o">/</span><span class="nx">sql</span>
-<span class="p">{</span>
-  <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="s2">&#34;SELECT * FROM metricbeat*&#34;</span>
-<span class="p">}</span>
-</code></pre></div><p>And it returned the following error:</p>
-<pre><code>Trying to retrieve too many docvalue_fields. Must be less than or equal to: [100] but was [1307]. This limit can be set by changing the [index.max_docvalue_fields_search] index level setting
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="nx">GET</span> <span class="nx">_xpack</span><span class="o">/</span><span class="nx">sql</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="s2">&#34;SELECT * FROM metricbeat*&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>And it returned the following error:</p>
+<pre tabindex="0"><code>Trying to retrieve too many docvalue_fields. Must be less than or equal to: [100] but was [1307]. This limit can be set by changing the [index.max_docvalue_fields_search] index level setting
 </code></pre><p>Docvalues are Elasticsearch’s data structure for storing the original indexed data in a columnar way. It seems that SQL extension blocks getting too many of them to avoid performance problems, but it can be easily overriden. The real question we should be asking why there are 1307 columns? Because as Metricbeat registers the index mapping, it also stores metadata about all available columns, such as <strong>vsphere.virtualmachine.custom_fields</strong> even though there is no value with that field.</p>
 <p>So, after a quick review of what actually Metricbeat supports, I try the following query:</p>
-<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="nx">GET</span> <span class="nx">_xpack</span><span class="o">/</span><span class="nx">sql</span>
-<span class="p">{</span>
-  <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="s2">&#34;SELECT avg(system.process.memory.rss.bytes) FROM metricbeat*&#34;</span>
-<span class="p">}</span>
-</code></pre></div><p>I just love it does not require backticks (which I hate to type with Turkish keyboard) with compound objects (fields names with dots), and it returns an easily parseable structured JSON with metadata of columns and the rows seperated:</p>
-<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="p">{</span>
-  <span class="s2">&#34;columns&#34;</span><span class="o">:</span> <span class="p">[</span>
-    <span class="p">{</span>
-      <span class="s2">&#34;name&#34;</span><span class="o">:</span> <span class="s2">&#34;AVG(system.process.memory.rss.bytes)&#34;</span><span class="p">,</span>
-      <span class="s2">&#34;type&#34;</span><span class="o">:</span> <span class="s2">&#34;long&#34;</span>
-    <span class="p">}</span>
-  <span class="p">],</span>
-  <span class="s2">&#34;rows&#34;</span><span class="o">:</span> <span class="p">[</span>
-    <span class="p">[</span>
-      <span class="mf">612974971.7615894</span>
-    <span class="p">]</span>
-  <span class="p">]</span>
-<span class="p">}</span>
-</code></pre></div><p>The endpoint can also return a table format if you append <strong>?format=txt</strong> to end.</p>
-<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="nx">GET</span> <span class="nx">_xpack</span><span class="o">/</span><span class="nx">sql</span><span class="o">?</span><span class="nx">format</span><span class="o">=</span><span class="nx">txt</span>
-<span class="p">{</span>
-  <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="s2">&#34;SELECT avg(system.process.memory.rss.bytes) FROM metricbeat*&#34;</span>
-<span class="p">}</span>
-<span class="nx">AVG</span><span class="p">(</span><span class="nx">system</span><span class="p">.</span><span class="nx">process</span><span class="p">.</span><span class="nx">memory</span><span class="p">.</span><span class="nx">rss</span><span class="p">.</span><span class="nx">bytes</span><span class="p">)</span>
-<span class="o">------------------------------------</span>
-<span class="mf">6.129749717615894E8</span>
-</code></pre></div><p>To try more interesting queries, I have also tried aggregations, which is to get the average memory for process:</p>
-<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="nx">GET</span> <span class="nx">_xpack</span><span class="o">/</span><span class="nx">sql</span><span class="o">?</span><span class="nx">format</span><span class="o">=</span><span class="nx">txt</span>
-<span class="p">{</span>
-    <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="s2">&#34;SELECT avg(system.process.memory.rss.bytes), system.process.name FROM metricbeat* WHERE match(beat.hostname, &#39;MustafaAkin.local&#39;) GROUP BY system.process.name LIMIT 100&#34;</span>
-<span class="p">}</span>
-</code></pre></div><p>And it returns the following:</p>
-<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="nx">AVG</span><span class="p">(</span><span class="nx">system</span><span class="p">.</span><span class="nx">process</span><span class="p">.</span><span class="nx">memory</span><span class="p">.</span><span class="nx">rss</span><span class="p">.</span><span class="nx">bytes</span><span class="p">)</span><span class="o">|</span><span class="nx">system</span><span class="p">.</span><span class="nx">process</span><span class="p">.</span><span class="nx">name</span>
-<span class="o">------------------------------------+-------------------</span>
-<span class="mf">3.3009664E7</span>                         <span class="o">|</span><span class="nx">CalendarAgent</span>      
-<span class="mf">3.3805892963265306E8</span>                <span class="o">|</span><span class="nx">Google</span> <span class="nx">Chrome</span>      
-<span class="mf">2.754828747755102E8</span>                 <span class="o">|</span><span class="nx">Google</span> <span class="nx">Chrome</span> <span class="nx">H</span>    
-<span class="mf">2.34139648E8</span>                        <span class="o">|</span><span class="nx">Slack</span> <span class="nx">Helper</span>       
-<span class="mf">1.3305953523809524E8</span>                <span class="o">|</span><span class="nx">Spotify</span>            
-<span class="mf">8.14535317979798E8</span>                  <span class="o">|</span><span class="nx">Spotify</span> <span class="nx">Helper</span>     
-<span class="mf">1.3287424E7</span>                         <span class="o">|</span><span class="nx">XprotectService</span>    
-<span class="mf">3.394526625185185E8</span>                 <span class="o">|</span><span class="nx">goland</span>             
-<span class="mf">1.9761845169230768E8</span>                <span class="o">|</span><span class="nx">iTerm2</span>             
-<span class="mf">1.0084054522828283E9</span>                <span class="o">|</span><span class="nx">idea</span>               
-<span class="mf">1.5776596712727273E9</span>                <span class="o">|</span><span class="nx">java</span>               
-<span class="mf">2.3113728E7</span>                         <span class="o">|</span><span class="nx">metricbeat</span>         
-<span class="mf">2.38579712E8</span>                        <span class="o">|</span><span class="nx">node</span>               
-<span class="mf">1.644544E7</span>                          <span class="o">|</span><span class="nx">quicklookd</span>         
-<span class="mf">6209536.0</span>                           <span class="o">|</span><span class="nx">zsh</span>
-</code></pre></div><p>As looking at the directory of the Elasticsearch, I also see a command line SQL client for ad-hoc queries. There is also a JDBC driver to integrate it directly in Java programs or the data visualization tools.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="nx">GET</span> <span class="nx">_xpack</span><span class="o">/</span><span class="nx">sql</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="s2">&#34;SELECT avg(system.process.memory.rss.bytes) FROM metricbeat*&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>I just love it does not require backticks (which I hate to type with Turkish keyboard) with compound objects (fields names with dots), and it returns an easily parseable structured JSON with metadata of columns and the rows seperated:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;columns&#34;</span><span class="o">:</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="s2">&#34;name&#34;</span><span class="o">:</span> <span class="s2">&#34;AVG(system.process.memory.rss.bytes)&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="s2">&#34;type&#34;</span><span class="o">:</span> <span class="s2">&#34;long&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">],</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;rows&#34;</span><span class="o">:</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">    <span class="p">[</span>
+</span></span><span class="line"><span class="cl">      <span class="mf">612974971.7615894</span>
+</span></span><span class="line"><span class="cl">    <span class="p">]</span>
+</span></span><span class="line"><span class="cl">  <span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>The endpoint can also return a table format if you append <strong>?format=txt</strong> to end.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="nx">GET</span> <span class="nx">_xpack</span><span class="o">/</span><span class="nx">sql</span><span class="o">?</span><span class="nx">format</span><span class="o">=</span><span class="nx">txt</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="s2">&#34;SELECT avg(system.process.memory.rss.bytes) FROM metricbeat*&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="nx">AVG</span><span class="p">(</span><span class="nx">system</span><span class="p">.</span><span class="nx">process</span><span class="p">.</span><span class="nx">memory</span><span class="p">.</span><span class="nx">rss</span><span class="p">.</span><span class="nx">bytes</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="o">------------------------------------</span>
+</span></span><span class="line"><span class="cl"><span class="mf">6.129749717615894</span><span class="nx">E8</span>
+</span></span></code></pre></div><p>To try more interesting queries, I have also tried aggregations, which is to get the average memory for process:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="nx">GET</span> <span class="nx">_xpack</span><span class="o">/</span><span class="nx">sql</span><span class="o">?</span><span class="nx">format</span><span class="o">=</span><span class="nx">txt</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="s2">&#34;SELECT avg(system.process.memory.rss.bytes), system.process.name FROM metricbeat* WHERE match(beat.hostname, &#39;MustafaAkin.local&#39;) GROUP BY system.process.name LIMIT 100&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>And it returns the following:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="nx">AVG</span><span class="p">(</span><span class="nx">system</span><span class="p">.</span><span class="nx">process</span><span class="p">.</span><span class="nx">memory</span><span class="p">.</span><span class="nx">rss</span><span class="p">.</span><span class="nx">bytes</span><span class="p">)</span><span class="o">|</span><span class="nx">system</span><span class="p">.</span><span class="nx">process</span><span class="p">.</span><span class="nx">name</span>
+</span></span><span class="line"><span class="cl"><span class="o">------------------------------------+-------------------</span>
+</span></span><span class="line"><span class="cl"><span class="mf">3.3009664</span><span class="nx">E7</span>                         <span class="o">|</span><span class="nx">CalendarAgent</span>      
+</span></span><span class="line"><span class="cl"><span class="mf">3.3805892963265306</span><span class="nx">E8</span>                <span class="o">|</span><span class="nx">Google</span> <span class="nx">Chrome</span>      
+</span></span><span class="line"><span class="cl"><span class="mf">2.754828747755102</span><span class="nx">E8</span>                 <span class="o">|</span><span class="nx">Google</span> <span class="nx">Chrome</span> <span class="nx">H</span>    
+</span></span><span class="line"><span class="cl"><span class="mf">2.34139648</span><span class="nx">E8</span>                        <span class="o">|</span><span class="nx">Slack</span> <span class="nx">Helper</span>       
+</span></span><span class="line"><span class="cl"><span class="mf">1.3305953523809524</span><span class="nx">E8</span>                <span class="o">|</span><span class="nx">Spotify</span>            
+</span></span><span class="line"><span class="cl"><span class="mf">8.14535317979798</span><span class="nx">E8</span>                  <span class="o">|</span><span class="nx">Spotify</span> <span class="nx">Helper</span>     
+</span></span><span class="line"><span class="cl"><span class="mf">1.3287424</span><span class="nx">E7</span>                         <span class="o">|</span><span class="nx">XprotectService</span>    
+</span></span><span class="line"><span class="cl"><span class="mf">3.394526625185185</span><span class="nx">E8</span>                 <span class="o">|</span><span class="nx">goland</span>             
+</span></span><span class="line"><span class="cl"><span class="mf">1.9761845169230768</span><span class="nx">E8</span>                <span class="o">|</span><span class="nx">iTerm2</span>             
+</span></span><span class="line"><span class="cl"><span class="mf">1.0084054522828283</span><span class="nx">E9</span>                <span class="o">|</span><span class="nx">idea</span>               
+</span></span><span class="line"><span class="cl"><span class="mf">1.5776596712727273</span><span class="nx">E9</span>                <span class="o">|</span><span class="nx">java</span>               
+</span></span><span class="line"><span class="cl"><span class="mf">2.3113728</span><span class="nx">E7</span>                         <span class="o">|</span><span class="nx">metricbeat</span>         
+</span></span><span class="line"><span class="cl"><span class="mf">2.38579712</span><span class="nx">E8</span>                        <span class="o">|</span><span class="nx">node</span>               
+</span></span><span class="line"><span class="cl"><span class="mf">1.644544</span><span class="nx">E7</span>                          <span class="o">|</span><span class="nx">quicklookd</span>         
+</span></span><span class="line"><span class="cl"><span class="mf">6209536.0</span>                           <span class="o">|</span><span class="nx">zsh</span>
+</span></span></code></pre></div><p>As looking at the directory of the Elasticsearch, I also see a command line SQL client for ad-hoc queries. There is also a JDBC driver to integrate it directly in Java programs or the data visualization tools.</p>
 <p>An example query with Filebeat logs where message field is used in text matcing searches for keyword <strong>sleep</strong>:</p>
 <p><img src="../../img/1__AQL9f4zNDHbvKTBZyw4Vug.png" alt="A screenshot from querying Filebeat logs with Command Line SQL Client of Elasticsearch with an ASCII logo of something I do not comprehend."></p>
 <p>There is also another endpoint for converting the SQL query to a regular Elasticsearch query. It can be useful if you would like to debug it. For comparison, one of the above queries results in the following long form with Translate API:</p>
-<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="nx">GET</span> <span class="nx">_xpack</span><span class="o">/</span><span class="nx">sql</span><span class="o">/</span><span class="nx">translate</span>
-<span class="p">{</span>
-    <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="s2">&#34;SELECT avg(system.process.memory.rss.bytes), system.process.name FROM metricbeat* WHERE match(beat.hostname, &#39;MustafaAkin.local&#39;) GROUP BY system.process.name LIMIT 100&#34;</span>
-<span class="p">}</span>
-
-<span class="p">{</span>
-  <span class="s2">&#34;size&#34;</span><span class="o">:</span> <span class="mi">0</span><span class="p">,</span>
-  <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="p">{</span>
-    <span class="s2">&#34;match&#34;</span><span class="o">:</span> <span class="p">{</span>
-      <span class="s2">&#34;beat.hostname&#34;</span><span class="o">:</span> <span class="p">{</span>
-        <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="s2">&#34;MustafaAkin.local&#34;</span><span class="p">,</span>
-        <span class="s2">&#34;operator&#34;</span><span class="o">:</span> <span class="s2">&#34;OR&#34;</span><span class="p">,</span>
-        <span class="s2">&#34;prefix_length&#34;</span><span class="o">:</span> <span class="mi">0</span><span class="p">,</span>
-        <span class="s2">&#34;max_expansions&#34;</span><span class="o">:</span> <span class="mi">50</span><span class="p">,</span>
-        <span class="s2">&#34;fuzzy_transpositions&#34;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
-        <span class="s2">&#34;lenient&#34;</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span>
-        <span class="s2">&#34;zero_terms_query&#34;</span><span class="o">:</span> <span class="s2">&#34;NONE&#34;</span><span class="p">,</span>
-        <span class="s2">&#34;auto_generate_synonyms_phrase_query&#34;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
-        <span class="s2">&#34;boost&#34;</span><span class="o">:</span> <span class="mi">1</span>
-      <span class="p">}</span>
-    <span class="p">}</span>
-  <span class="p">},</span>
-  <span class="s2">&#34;_source&#34;</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span>
-  <span class="s2">&#34;stored_fields&#34;</span><span class="o">:</span> <span class="s2">&#34;_none_&#34;</span><span class="p">,</span>
-  <span class="s2">&#34;aggregations&#34;</span><span class="o">:</span> <span class="p">{</span>
-    <span class="s2">&#34;groupby&#34;</span><span class="o">:</span> <span class="p">{</span>
-      <span class="s2">&#34;composite&#34;</span><span class="o">:</span> <span class="p">{</span>
-        <span class="s2">&#34;size&#34;</span><span class="o">:</span> <span class="mi">100</span><span class="p">,</span>
-        <span class="s2">&#34;sources&#34;</span><span class="o">:</span> <span class="p">[</span>
-          <span class="p">{</span>
-            <span class="s2">&#34;80529&#34;</span><span class="o">:</span> <span class="p">{</span>
-              <span class="s2">&#34;terms&#34;</span><span class="o">:</span> <span class="p">{</span>
-                <span class="s2">&#34;field&#34;</span><span class="o">:</span> <span class="s2">&#34;system.process.name&#34;</span><span class="p">,</span>
-                <span class="s2">&#34;order&#34;</span><span class="o">:</span> <span class="s2">&#34;asc&#34;</span>
-              <span class="p">}</span>
-            <span class="p">}</span>
-          <span class="p">}</span>
-        <span class="p">]</span>
-      <span class="p">},</span>
-      <span class="s2">&#34;aggregations&#34;</span><span class="o">:</span> <span class="p">{</span>
-        <span class="s2">&#34;80696&#34;</span><span class="o">:</span> <span class="p">{</span>
-          <span class="s2">&#34;avg&#34;</span><span class="o">:</span> <span class="p">{</span>
-            <span class="s2">&#34;field&#34;</span><span class="o">:</span> <span class="s2">&#34;system.process.memory.rss.bytes&#34;</span>
-          <span class="p">}</span>
-        <span class="p">}</span>
-      <span class="p">}</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div><p>Finally, you can also include additional filters with Elasticsearch DSL on top of your SQL queries which can be useful to add additional terms that SQL syntax does not support or you do not want to modify the SQL:</p>
-<div class="highlight"><pre class="chroma"><code class="language-javascript" data-lang="javascript"><span class="nx">POST</span> <span class="o">/</span><span class="nx">_xpack</span><span class="o">/</span><span class="nx">sql</span><span class="o">?</span><span class="nx">format</span><span class="o">=</span><span class="nx">txt</span>
-<span class="p">{</span>
-    <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="s2">&#34;SELECT * FROM library ORDER BY page_count DESC&#34;</span><span class="p">,</span>
-    <span class="s2">&#34;filter&#34;</span><span class="o">:</span> <span class="p">{</span>
-        <span class="s2">&#34;range&#34;</span><span class="o">:</span> <span class="p">{</span>
-            <span class="s2">&#34;page_count&#34;</span><span class="o">:</span> <span class="p">{</span>
-                <span class="s2">&#34;gte&#34;</span> <span class="o">:</span> <span class="mi">100</span><span class="p">,</span>
-                <span class="s2">&#34;lte&#34;</span> <span class="o">:</span> <span class="mi">200</span>
-            <span class="p">}</span>
-        <span class="p">}</span>
-    <span class="p">},</span>
-    <span class="s2">&#34;fetch_size&#34;</span><span class="o">:</span> <span class="mi">5</span>
-<span class="p">}</span>
-</code></pre></div><p>The documentation of SQL features of Elasticsearch can be found <a href="https://www.elastic.co/guide/en/elasticsearch/reference/6.x/xpack-sql.html">the documentation at the master branch</a>. Although the SQL support is here, there are some missing parts as well. For the time of writing, I could not find the string manipulation functions or ordering when GROUP BY is used. However the SQL feature is currently a work in progress but holds much promise. It will probably never be a complete SQL solution, which can do cross index joins that can replace your RDBMS, but Elasticsearch is not designed for that anyway. This SQL addition to regular Elasticsearch DSL is simply a means to reduce barriers for some people to write queries faster.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="nx">GET</span> <span class="nx">_xpack</span><span class="o">/</span><span class="nx">sql</span><span class="o">/</span><span class="nx">translate</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="s2">&#34;SELECT avg(system.process.memory.rss.bytes), system.process.name FROM metricbeat* WHERE match(beat.hostname, &#39;MustafaAkin.local&#39;) GROUP BY system.process.name LIMIT 100&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;size&#34;</span><span class="o">:</span> <span class="mi">0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;match&#34;</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="s2">&#34;beat.hostname&#34;</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="s2">&#34;MustafaAkin.local&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;operator&#34;</span><span class="o">:</span> <span class="s2">&#34;OR&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;prefix_length&#34;</span><span class="o">:</span> <span class="mi">0</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;max_expansions&#34;</span><span class="o">:</span> <span class="mi">50</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;fuzzy_transpositions&#34;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;lenient&#34;</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;zero_terms_query&#34;</span><span class="o">:</span> <span class="s2">&#34;NONE&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;auto_generate_synonyms_phrase_query&#34;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;boost&#34;</span><span class="o">:</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">},</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;_source&#34;</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;stored_fields&#34;</span><span class="o">:</span> <span class="s2">&#34;_none_&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="s2">&#34;aggregations&#34;</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;groupby&#34;</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="s2">&#34;composite&#34;</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;size&#34;</span><span class="o">:</span> <span class="mi">100</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;sources&#34;</span><span class="o">:</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">          <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;80529&#34;</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">              <span class="s2">&#34;terms&#34;</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;field&#34;</span><span class="o">:</span> <span class="s2">&#34;system.process.name&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;order&#34;</span><span class="o">:</span> <span class="s2">&#34;asc&#34;</span>
+</span></span><span class="line"><span class="cl">              <span class="p">}</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">          <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">]</span>
+</span></span><span class="line"><span class="cl">      <span class="p">},</span>
+</span></span><span class="line"><span class="cl">      <span class="s2">&#34;aggregations&#34;</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;80696&#34;</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">          <span class="s2">&#34;avg&#34;</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;field&#34;</span><span class="o">:</span> <span class="s2">&#34;system.process.memory.rss.bytes&#34;</span>
+</span></span><span class="line"><span class="cl">          <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">      <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>Finally, you can also include additional filters with Elasticsearch DSL on top of your SQL queries which can be useful to add additional terms that SQL syntax does not support or you do not want to modify the SQL:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="nx">POST</span> <span class="o">/</span><span class="nx">_xpack</span><span class="o">/</span><span class="nx">sql</span><span class="o">?</span><span class="nx">format</span><span class="o">=</span><span class="nx">txt</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;query&#34;</span><span class="o">:</span> <span class="s2">&#34;SELECT * FROM library ORDER BY page_count DESC&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;filter&#34;</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="s2">&#34;range&#34;</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="s2">&#34;page_count&#34;</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;gte&#34;</span> <span class="o">:</span> <span class="mi">100</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="s2">&#34;lte&#34;</span> <span class="o">:</span> <span class="mi">200</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">},</span>
+</span></span><span class="line"><span class="cl">    <span class="s2">&#34;fetch_size&#34;</span><span class="o">:</span> <span class="mi">5</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>The documentation of SQL features of Elasticsearch can be found <a href="https://www.elastic.co/guide/en/elasticsearch/reference/6.x/xpack-sql.html">the documentation at the master branch</a>. Although the SQL support is here, there are some missing parts as well. For the time of writing, I could not find the string manipulation functions or ordering when GROUP BY is used. However the SQL feature is currently a work in progress but holds much promise. It will probably never be a complete SQL solution, which can do cross index joins that can replace your RDBMS, but Elasticsearch is not designed for that anyway. This SQL addition to regular Elasticsearch DSL is simply a means to reduce barriers for some people to write queries faster.</p>
 
 </div>
 
 <h2>Comments</h2>
 <div id="disqus_thread"></div>
-<script type="application/javascript">
-    var disqus_config = function () {
+<script>
+    window.disqus_config = function () {
     
     
     
@@ -218,7 +218,7 @@ SQL support was announced in ElasticON and there is a comprehensive presentation
 
     
       
-<script type="application/javascript">
+<script>
 var doNotTrack = false;
 if (!doNotTrack) {
 	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;

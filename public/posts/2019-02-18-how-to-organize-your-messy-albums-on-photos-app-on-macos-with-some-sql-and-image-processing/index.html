@@ -3,7 +3,7 @@
 <head>
   <link href="https://gmpg.org/xfn/11" rel="profile">
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <meta name="generator" content="Hugo 0.69.2" />
+  <meta name="generator" content="Hugo 0.121.2">
 
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -37,7 +37,7 @@
     <div class="sidebar-about">
       <a href=""><h1>Mustafa Akın</h1></a>
       <p class="lead">
-       SRE Architect @Atlassian Opsgenie, PhD Student @Bilkent University CS 
+       Co-founder at @Resmo, previously Principal SRE at @Atlassian, Opsgenie 
       </p>
     </div>
 
@@ -60,56 +60,56 @@
 <p>I used some queries to find more information that the Apps GUI does not provide, so that I can go and manually delete some or move them to new apps. I did not try modifying the database to avoid damaging the integrity, and I am not sure if modifying it would be reflected to iCloud account. And there is currently not a useful API for Photos by Apple on MacOS SDK, so you are out of luck.</p>
 <h4 id="1-find-the-storage-cost-of-eachalbum">1. Find the storage cost of each album</h4>
 <p>For starters, lets examine some tables. RKMaster stores the information about actual Photo or Video, such as original filename, dimensions. RKAlbum stores information about Albums, such as name, creation date, parent folder, default sort key etc. The interesting ones are RKVersion and RKAlbumVersion.  I am not aware of any versioning on images. And, RKMaster table has slighlty more records than RKVersionn, and there are 138 entries that do not match, which all are RAW Photos. Unfortunately, there is not proper documentation of it, so I am going by educated guesses and the tables have proper column names that matches (modelId is like an auto-increment key in every table). The following query gives how much the albums takes space and how many items are in the albums:</p>
-<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="k">select</span> <span class="n">RKAlbum</span><span class="p">.</span><span class="n">name</span><span class="p">,</span>  
-       <span class="n">_count_</span><span class="p">(</span><span class="err">\</span><span class="o">*</span><span class="p">)</span> <span class="k">as</span> <span class="n">total</span><span class="p">,</span>  
-       <span class="n">_sum_</span><span class="p">(</span><span class="n">RKMaster</span><span class="p">.</span><span class="n">fileSize</span><span class="p">)</span> <span class="o">/</span> <span class="mi">1024</span> <span class="o">/</span> <span class="mi">1024</span> <span class="k">as</span> <span class="n">megabytes</span>  
-<span class="k">FROM</span> <span class="n">RKAlbum</span><span class="p">,</span>  
-     <span class="n">RKAlbumVersion</span><span class="p">,</span>  
-     <span class="n">RKVersion</span><span class="p">,</span>  
-     <span class="n">RKMaster</span>  
-<span class="k">WHERE</span> <span class="n">RKAlbum</span><span class="p">.</span><span class="n">modelId</span> <span class="o">=</span> <span class="n">RKAlbumVersion</span><span class="p">.</span><span class="n">albumId</span>  
-  <span class="k">AND</span> <span class="n">RKVersion</span><span class="p">.</span><span class="n">modelId</span> <span class="o">=</span> <span class="n">RKAlbumVersion</span><span class="p">.</span><span class="n">versionId</span>  
-  <span class="k">AND</span> <span class="n">RKMaster</span><span class="p">.</span><span class="n">modelId</span> <span class="o">=</span> <span class="n">RKVersion</span><span class="p">.</span><span class="n">masterId</span>  
-<span class="k">GROUP</span> <span class="k">BY</span> <span class="mi">1</span>  
-<span class="k">ORDER</span> <span class="k">BY</span> <span class="n">megabytes</span> <span class="k">DESC</span>
-</code></pre></div><h4 id="2-find-out-album-sizes-seperated-by-videos-andphotos">2. Find out album sizes, seperated by Videos and Photos</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">select</span><span class="w"> </span><span class="n">RKAlbum</span><span class="p">.</span><span class="n">name</span><span class="p">,</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">       </span><span class="n">_count_</span><span class="p">(</span><span class="err">\</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">total</span><span class="p">,</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">       </span><span class="n">_sum_</span><span class="p">(</span><span class="n">RKMaster</span><span class="p">.</span><span class="n">fileSize</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">megabytes</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">FROM</span><span class="w"> </span><span class="n">RKAlbum</span><span class="p">,</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">     </span><span class="n">RKAlbumVersion</span><span class="p">,</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">     </span><span class="n">RKVersion</span><span class="p">,</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">     </span><span class="n">RKMaster</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">WHERE</span><span class="w"> </span><span class="n">RKAlbum</span><span class="p">.</span><span class="n">modelId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RKAlbumVersion</span><span class="p">.</span><span class="n">albumId</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">RKVersion</span><span class="p">.</span><span class="n">modelId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RKAlbumVersion</span><span class="p">.</span><span class="n">versionId</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">RKMaster</span><span class="p">.</span><span class="n">modelId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RKVersion</span><span class="p">.</span><span class="n">masterId</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="mi">1</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">megabytes</span><span class="w"> </span><span class="k">DESC</span><span class="w">
+</span></span></span></code></pre></div><h4 id="2-find-out-album-sizes-seperated-by-videos-andphotos">2. Find out album sizes, seperated by Videos and Photos</h4>
 <p>The above query is nice, but when you have a baby niece, you have a lot of videos, that you cannot delete, because she is damn cute in each of them. So, I want to find which albums have lots of photos in them and taking space, so I can reduce the clutter in them. As Photos are stationary, they do not have durations, right? So adding a simple case for RKMaster.duration can separate videos from photos, and now I see my niece’s videos takes %15 of my storage.</p>
-<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="k">select</span> <span class="n">RKAlbum</span><span class="p">.</span><span class="n">name</span><span class="p">,</span>  
-       <span class="p">(</span><span class="k">CASE</span>  
-          <span class="k">WHEN</span> <span class="p">(</span><span class="n">RKMaster</span><span class="p">.</span><span class="n">duration</span> <span class="k">IS</span> <span class="k">NULL</span> <span class="k">OR</span> <span class="n">RKMaster</span><span class="p">.</span><span class="n">duration</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="k">THEN</span> <span class="s1">&#39;Photo&#39;</span>  
-          <span class="k">ELSE</span> <span class="s1">&#39;Video&#39;</span> <span class="k">END</span><span class="p">)</span>                   <span class="k">AS</span> <span class="n">kind</span><span class="p">,</span>  
-       <span class="n">_count_</span><span class="p">(</span><span class="err">\</span><span class="o">*</span><span class="p">)</span>                               <span class="k">as</span> <span class="n">total</span><span class="p">,</span>  
-       <span class="n">_sum_</span><span class="p">(</span><span class="n">RKMaster</span><span class="p">.</span><span class="n">fileSize</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span> <span class="err">\</span><span class="o">*</span> <span class="mi">1024</span><span class="p">)</span> <span class="k">as</span> <span class="n">megabytes</span>  
-<span class="k">FROM</span> <span class="n">RKAlbum</span><span class="p">,</span>  
-     <span class="n">RKAlbumVersion</span><span class="p">,</span>  
-     <span class="n">RKVersion</span><span class="p">,</span>  
-     <span class="n">RKMaster</span>  
-<span class="k">WHERE</span> <span class="n">RKAlbum</span><span class="p">.</span><span class="n">modelId</span> <span class="o">=</span> <span class="n">RKAlbumVersion</span><span class="p">.</span><span class="n">albumId</span>  
-  <span class="k">AND</span> <span class="n">RKVersion</span><span class="p">.</span><span class="n">modelId</span> <span class="o">=</span> <span class="n">RKAlbumVersion</span><span class="p">.</span><span class="n">versionId</span>  
-  <span class="k">AND</span> <span class="n">RKMaster</span><span class="p">.</span><span class="n">modelId</span> <span class="o">=</span> <span class="n">RKVersion</span><span class="p">.</span><span class="n">masterId</span>  
-<span class="k">GROUP</span> <span class="k">BY</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span>  
-<span class="k">ORDER</span> <span class="k">BY</span> <span class="n">megabytes</span> <span class="k">DESC</span>
-</code></pre></div><h4 id="3-find-out-some-collection-of-photos-that-can-bealbums">3. Find out some collection of photos that can be albums</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">select</span><span class="w"> </span><span class="n">RKAlbum</span><span class="p">.</span><span class="n">name</span><span class="p">,</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">       </span><span class="p">(</span><span class="k">CASE</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="k">WHEN</span><span class="w"> </span><span class="p">(</span><span class="n">RKMaster</span><span class="p">.</span><span class="n">duration</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">OR</span><span class="w"> </span><span class="n">RKMaster</span><span class="p">.</span><span class="n">duration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="s1">&#39;Photo&#39;</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">          </span><span class="k">ELSE</span><span class="w"> </span><span class="s1">&#39;Video&#39;</span><span class="w"> </span><span class="k">END</span><span class="p">)</span><span class="w">                   </span><span class="k">AS</span><span class="w"> </span><span class="n">kind</span><span class="p">,</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">       </span><span class="n">_count_</span><span class="p">(</span><span class="err">\</span><span class="o">*</span><span class="p">)</span><span class="w">                               </span><span class="k">as</span><span class="w"> </span><span class="n">total</span><span class="p">,</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">       </span><span class="n">_sum_</span><span class="p">(</span><span class="n">RKMaster</span><span class="p">.</span><span class="n">fileSize</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="p">(</span><span class="mi">1024</span><span class="w"> </span><span class="err">\</span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">)</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">megabytes</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">FROM</span><span class="w"> </span><span class="n">RKAlbum</span><span class="p">,</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">     </span><span class="n">RKAlbumVersion</span><span class="p">,</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">     </span><span class="n">RKVersion</span><span class="p">,</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">     </span><span class="n">RKMaster</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">WHERE</span><span class="w"> </span><span class="n">RKAlbum</span><span class="p">.</span><span class="n">modelId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RKAlbumVersion</span><span class="p">.</span><span class="n">albumId</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">RKVersion</span><span class="p">.</span><span class="n">modelId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RKAlbumVersion</span><span class="p">.</span><span class="n">versionId</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">RKMaster</span><span class="p">.</span><span class="n">modelId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RKVersion</span><span class="p">.</span><span class="n">masterId</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">megabytes</span><span class="w"> </span><span class="k">DESC</span><span class="w">
+</span></span></span></code></pre></div><h4 id="3-find-out-some-collection-of-photos-that-can-bealbums">3. Find out some collection of photos that can be albums</h4>
 <p>When photos are in album, it is easier to navigate to them, rather than remembering the exact dates. We will first find out the photos that are not in any albums, and determine whether there exists photo clusters in some time ranges. If you take worst case, the longest time range such as 1970–2018, it would not be a good identifier. So my main is to find clusters of Photos in the time-space without any albums. I can also make use of the EXIF info, so that we can filter out some camera models to ensure only my photos ends up in albums.</p>
 <p>After finding out the photos, we will also make use of the Smart Album feature, where you can specify some criteria and virtual albums are created automatically. One downside is, smart albums are not supported in iOS, so after being satisfied with some criteria, I create actual albums with those Photos.</p>
 <p>You can probably have some fun with window functions as well, but as a starter, I just want to group by them using the date taken. The odd thing is that the imageDate field in RKMaster timestamp does not look like a standard timestamp. After trying some scaling, I give up and try Google and get the answer in 10 secs: They are adjusted 31 years according to <a href="https://apple.stackexchange.com/questions/288318/what-format-does-the-apple-notes-sqlite-db-date-use">this answer on Stack Exchange</a> which is unusual, but yeah in short; it is taking 2001 epoch instead of 1970.</p>
-<div class="highlight"><pre class="chroma"><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="n">_strftime_</span><span class="p">(</span><span class="s1">&#39;%Y-%m-%d&#39;</span><span class="p">,</span> <span class="n">_datetime_</span><span class="p">(</span><span class="n">imageDate</span><span class="p">,</span> <span class="s1">&#39;unixepoch&#39;</span><span class="p">,</span> <span class="s1">&#39;31 years&#39;</span><span class="p">))</span> <span class="k">AS</span> <span class="n">dt</span><span class="p">,</span> <span class="n">_count_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  
-<span class="k">FROM</span> <span class="n">RKMaster</span>  
-<span class="k">WHERE</span> <span class="n">RKMaster</span><span class="p">.</span><span class="n">modelId</span> <span class="k">NOT</span> <span class="k">IN</span> <span class="p">(</span>  
-        <span class="k">select</span> <span class="n">RKMaster</span><span class="p">.</span><span class="n">modelId</span>  
-         <span class="k">from</span> <span class="n">RKAlbumVersion</span><span class="p">,</span>  
-              <span class="n">RKVersion</span><span class="p">,</span>  
-              <span class="n">RKMaster</span><span class="p">,</span>  
-              <span class="n">RKAlbum</span>  
-         <span class="k">where</span> <span class="n">RKAlbumVersion</span><span class="p">.</span><span class="n">versionId</span> <span class="o">=</span> <span class="n">RKVersion</span><span class="p">.</span><span class="n">modelId</span>  
-           <span class="k">AND</span> <span class="n">RKMaster</span><span class="p">.</span><span class="n">modelId</span> <span class="o">=</span> <span class="n">RKVersion</span><span class="p">.</span><span class="n">masterId</span>  
-           <span class="k">AND</span> <span class="n">RKAlbumVersion</span><span class="p">.</span><span class="n">albumId</span> <span class="o">=</span> <span class="n">RKAlbum</span><span class="p">.</span><span class="n">modelId</span>  
-           <span class="k">AND</span> <span class="n">RKAlbumVersion</span><span class="p">.</span><span class="n">versionId</span> <span class="o">=</span> <span class="n">RKVersion</span><span class="p">.</span><span class="n">modelId</span><span class="p">)</span>  
-<span class="k">GROUP</span> <span class="k">BY</span> <span class="mi">1</span>  
-<span class="k">HAVING</span> <span class="n">_count_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">30</span>  
-<span class="k">ORDER</span> <span class="k">BY</span> <span class="mi">1</span>
-</code></pre></div><p>The above query will list you the number of photos that are not in any album and at least 30 photos from that day. (surely there can be a better SQL for that ¯\_(ツ)_/¯). It will give you a result like following:</p>
-<pre><code>2018-03-24 143  
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">SELECT</span><span class="w"> </span><span class="n">_strftime_</span><span class="p">(</span><span class="s1">&#39;%Y-%m-%d&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">_datetime_</span><span class="p">(</span><span class="n">imageDate</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;unixepoch&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;31 years&#39;</span><span class="p">))</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">dt</span><span class="p">,</span><span class="w"> </span><span class="n">_count_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">FROM</span><span class="w"> </span><span class="n">RKMaster</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">WHERE</span><span class="w"> </span><span class="n">RKMaster</span><span class="p">.</span><span class="n">modelId</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="p">(</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">select</span><span class="w"> </span><span class="n">RKMaster</span><span class="p">.</span><span class="n">modelId</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">         </span><span class="k">from</span><span class="w"> </span><span class="n">RKAlbumVersion</span><span class="p">,</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="n">RKVersion</span><span class="p">,</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="n">RKMaster</span><span class="p">,</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">              </span><span class="n">RKAlbum</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">         </span><span class="k">where</span><span class="w"> </span><span class="n">RKAlbumVersion</span><span class="p">.</span><span class="n">versionId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RKVersion</span><span class="p">.</span><span class="n">modelId</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">           </span><span class="k">AND</span><span class="w"> </span><span class="n">RKMaster</span><span class="p">.</span><span class="n">modelId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RKVersion</span><span class="p">.</span><span class="n">masterId</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">           </span><span class="k">AND</span><span class="w"> </span><span class="n">RKAlbumVersion</span><span class="p">.</span><span class="n">albumId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RKAlbum</span><span class="p">.</span><span class="n">modelId</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w">           </span><span class="k">AND</span><span class="w"> </span><span class="n">RKAlbumVersion</span><span class="p">.</span><span class="n">versionId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RKVersion</span><span class="p">.</span><span class="n">modelId</span><span class="p">)</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="mi">1</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">HAVING</span><span class="w"> </span><span class="n">_count_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">30</span><span class="w">  
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="mi">1</span><span class="w">
+</span></span></span></code></pre></div><p>The above query will list you the number of photos that are not in any album and at least 30 photos from that day. (surely there can be a better SQL for that ¯\_(ツ)_/¯). It will give you a result like following:</p>
+<pre tabindex="0"><code>2018-03-24 143  
 2018-09-01 52  
 2018-09-23 52  
 2018-09-24 58  
@@ -121,7 +121,7 @@
 2018-10-29 31  
 2019-01-03 32
 </code></pre><p>And as you see, there are clusters of photos in those dates, that are not in any albums. It is very likely that I have a potential album between 23–24 September 2018. By using the Smart Album feature of photos, you can create a dynamic album with any conditions you like. And the above input will be helpful for me to view better and create more meaningful albums.</p>
-<p><img src="../../img/1__Rf9dauRj7KWpSWeWipFPIg.png" alt="Smart Album Creation options with many filters available. You can also select People, Camera & Lens Model, Focal Length, ISO but they might not be helpful as these one.">
+<p><img src="../../img/1__Rf9dauRj7KWpSWeWipFPIg.png" alt="Smart Album Creation options with many filters available. You can also select People, Camera &amp; Lens Model, Focal Length, ISO but they might not be helpful as these one.">
 Smart Album Creation options with many filters available. You can also select People, Camera &amp; Lens Model, Focal Length, ISO but they might not be helpful as these one.</p>
 <h4 id="4-bonus-find-out-blurry-pictures-inalbums">4. BONUS: Find out blurry pictures in albums</h4>
 <p>Okay, this is beyond just SQL. But, I will show you what can you do. Even though you tell Photos to upload all the Photos to preserve space (as a poor guy with 256GB disk), the thumbnails of all the photos are stored in the disk and has around 100–200kb, around 1 megapixels resolution, which can be enough for most image processing applications. Maybe you can deep learn something, such as you were always in the left of your mother in pictures, I don’t know.</p>
@@ -156,8 +156,8 @@ This does not help anyone, Apple. I know the pictures are there and hex numbers 
 
 <h2>Comments</h2>
 <div id="disqus_thread"></div>
-<script type="application/javascript">
-    var disqus_config = function () {
+<script>
+    window.disqus_config = function () {
     
     
     
@@ -179,7 +179,7 @@ This does not help anyone, Apple. I know the pictures are there and hex numbers 
 
     
       
-<script type="application/javascript">
+<script>
 var doNotTrack = false;
 if (!doNotTrack) {
 	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
